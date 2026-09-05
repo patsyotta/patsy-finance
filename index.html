@@ -162,10 +162,10 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
   <div class="muted" style="font-size:11px;margin-top:4px">Este saldo no se suma a tus ingresos ni a tus gastos personales.</div>
  </div>
  <div class="grid">
-  <div class="mini"><small>📥 Recibido de él</small><strong id="husbandReceived">$0</strong></div>
-  <div class="mini"><small>📤 Para sus clientes</small><strong id="husbandClients">$0</strong></div>
-  <div class="mini"><small>↩️ Devuelto a él</small><strong id="husbandReturned">$0</strong></div>
-  <div class="mini"><small>💰 Pendiente de devolver</small><strong id="husbandOwed">$0</strong></div>
+  <div class="mini"><small>📥 Dinero recibido</small><strong id="husbandReceived">$0</strong></div>
+  <div class="mini"><small>📤 Dinero que le mandé</small><strong id="husbandReturned">$0</strong></div>
+  <div class="mini"><small>💰 Saldo de él</small><strong id="husbandOwed">$0</strong></div>
+  <div class="mini"><small>📋 Movimientos</small><strong id="husbandMovementCount">0</strong></div>
  </div>
  <div class="card">
   <div class="title"><b>Movimientos del negocio</b><span class="muted">Separados de Patsy</span></div>
@@ -287,27 +287,18 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
  <h3>💼 Movimiento del negocio</h3>
  <div class="form">
   <label>Tipo de movimiento</label>
-  <select id="husbandMoveType" onchange="toggleHusbandMoveLabel()">
-   <option value="received">📥 Dinero recibido</option>
-   <option value="client">📤 Transferencia/pago para uno de sus clientes</option>
-   <option value="returned">↩️ Dinero que devuelves</option>
+  <select id="husbandMoveType">
+   <option value="received">📥 Recibí dinero</option>
+   <option value="returned">📤 Le mandé dinero</option>
   </select>
-  <label>Motivo</label>
-  <select id="husbandMovePurpose">
-   <option value="No me especificó">🤷 No me especificó</option>
-   <option value="Gasolina">⛽ Gasolina</option>
-   <option value="Material">🧰 Material</option>
-   <option value="Pago a cliente">👤 Pago a cliente</option>
-   <option value="Otro">📝 Otro</option>
-  </select>
-<label id="husbandMoveConceptLabel">Concepto</label>
-  <input id="husbandMoveConcept" placeholder="Ej. Dinero para guardar">
+  <label>Concepto (opcional)</label>
+  <input id="husbandMoveConcept" placeholder="Ej. Anticipo, resto, o no me especificó">
   <label>Monto</label>
   <input id="husbandMoveAmount" type="number" step="0.01" placeholder="0.00">
-  <label>Fecha</label>
+  <label>Fecha del movimiento</label>
   <input id="husbandMoveDate" type="date">
   <label>Nota (opcional)</label>
-  <input id="husbandMoveNote" placeholder="Ej. Cliente Juan, transferencia, efectivo...">
+  <input id="husbandMoveNote" placeholder="Ej. Transferencia, efectivo, etc.">
   <button class="primary" onclick="saveHusbandBusinessMove()">Guardar movimiento</button>
  </div>
 </div></div>
@@ -626,27 +617,17 @@ function openHusbandBusinessModal(){
  document.getElementById('husbandMoveAmount').value='';
  document.getElementById('husbandMoveDate').value=new Date().toISOString().slice(0,10);
  document.getElementById('husbandMoveNote').value='';
- toggleHusbandMoveLabel();
  document.getElementById('husbandBusinessModal').classList.add('show');
 }
 function closeHusbandBusinessModal(){document.getElementById('husbandBusinessModal').classList.remove('show')}
-function toggleHusbandMoveLabel(){
- const t=document.getElementById('husbandMoveType').value;
- const label=document.getElementById('husbandMoveConceptLabel');
- const input=document.getElementById('husbandMoveConcept');
- if(t==='received'){label.textContent='Concepto';input.placeholder='Ej. Dinero que me dejó para guardar'}
- if(t==='client'){label.textContent='Cliente / concepto';input.placeholder='Ej. Cliente Juan, pedido 123'}
- if(t==='returned'){label.textContent='Concepto';input.placeholder='Ej. Devolución de saldo a mi esposo'}
-}
 function saveHusbandBusinessMove(){
  const type=document.getElementById('husbandMoveType').value;
- const concept=document.getElementById('husbandMoveConcept').value.trim()||'Movimiento de negocio';
+ const concept=document.getElementById('husbandMoveConcept').value.trim()||'No me especificó';
  const amount=Number(document.getElementById('husbandMoveAmount').value||0);
  const date=document.getElementById('husbandMoveDate').value||new Date().toISOString().slice(0,10);
  const note=document.getElementById('husbandMoveNote').value.trim();
- const purpose=document.getElementById('husbandMovePurpose')?.value||'No me especificó';
  if(!amount||amount<=0){alert('Agrega un monto válido.');return}
- husbandBusiness.unshift({id:Date.now(),type,concept,amount,date,note,purpose});
+ husbandBusiness.unshift({id:Date.now(),type,concept,amount,date,note});
  localStorage.setItem(husbandBusinessKey,JSON.stringify(husbandBusiness));
  closeHusbandBusinessModal();
  renderHusbandBusiness();
@@ -658,28 +639,39 @@ function deleteHusbandBusinessMove(i){
   renderHusbandBusiness();
  }
 }
+function formatBusinessDate(d){
+ if(!d)return '';
+ const parts=d.split('-');
+ return parts.length===3?`${parts[2]}/${parts[1]}/${parts[0]}`:d;
+}
 function renderHusbandBusiness(){
- const received=husbandBusiness.filter(x=>x.type==='received').reduce((a,x)=>a+x.amount,0);
- const clients=husbandBusiness.filter(x=>x.type==='client').reduce((a,x)=>a+x.amount,0);
- const returned=husbandBusiness.filter(x=>x.type==='returned').reduce((a,x)=>a+x.amount,0);
- const balance=received-clients-returned;
- const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
- set('husbandBalance',balance);set('husbandReceived',received);set('husbandClients',clients);set('husbandReturned',returned);set('husbandOwed',balance);
+ const received=husbandBusiness.filter(x=>x.type==='received').reduce((a,x)=>a+Number(x.amount||0),0);
+ // Las salidas antiguas de tipo client y returned se conservan como dinero enviado.
+ const sent=husbandBusiness.filter(x=>x.type==='client'||x.type==='returned').reduce((a,x)=>a+Number(x.amount||0),0);
+ const balance=received-sent;
+ const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=typeof v==='number'?money(v):v};
+ set('husbandBalance',balance);
+ set('husbandReceived',received);
+ set('husbandReturned',sent);
+ set('husbandOwed',balance);
+ set('husbandMovementCount',husbandBusiness.length);
+ const clientsEl=document.getElementById('husbandClients');
+ if(clientsEl)clientsEl.textContent=money(0);
  const list=document.getElementById('husbandBusinessList');
  if(!list)return;
  if(!husbandBusiness.length){list.innerHTML='<div class="empty">Aún no hay movimientos del negocio.</div>';return}
  let running=0;
- const chronological=[...husbandBusiness].reverse().map(x=>{running += x.type==='received'?x.amount:-x.amount; return {...x,running}}).reverse();
+ const chronological=[...husbandBusiness].reverse().map(x=>{running += x.type==='received'?Number(x.amount||0):-Number(x.amount||0); return {...x,running}}).reverse();
  list.innerHTML=chronological.map((x)=>{
   const originalIndex=husbandBusiness.findIndex(m=>m.id===x.id);
-  const sign=x.type==='received'?'+':'-';
-  const icon=x.type==='received'?'📥':x.type==='client'?'📤':'↩️';
-  const color=x.type==='received'?'#167a57':'#d84b72';
-  const purpose=x.type==='client'?` · ${esc(x.purpose||'No me especificó')}`:'';
+  const isIn=x.type==='received';
+  const sign=isIn?'+':'-';
+  const icon=isIn?'📥':'📤';
+  const color=isIn?'#167a57':'#d84b72';
   return `<div style="padding:10px 0;border-bottom:1px solid #f0e5eb">
    <div style="display:flex;justify-content:space-between;gap:8px">
-    <div><b>${icon} ${esc(x.concept)}</b><div class="muted" style="font-size:10px">${x.date}${purpose}${x.note?' · '+esc(x.note):''}</div></div>
-    <b style="color:${color}">${sign}${money(x.amount)}</b>
+    <div><b>${icon} ${esc(x.concept||'No me especificó')}</b><div class="muted" style="font-size:10px">${formatBusinessDate(x.date)}${x.note?' · '+esc(x.note):''}</div></div>
+    <b style="color:${color}">${sign}${money(Number(x.amount||0))}</b>
    </div>
    <div class="muted" style="font-size:10px;margin-top:3px">Saldo después: <b>${money(x.running)}</b></div>
    <button onclick="deleteHusbandBusinessMove(${originalIndex})" style="border:0;background:none;color:#aaa;font-size:10px;padding:5px 0">Eliminar</button>
