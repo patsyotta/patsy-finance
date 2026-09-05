@@ -160,7 +160,7 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 <section id="deudas" class="section">
  <div class="title"><h2>Deudas y tarjetas</h2><button class="plus" onclick="openDebtModal()">+</button></div>
  <div class="card">
-  <div class="title"><b>Resumen de deudas</b><span class="muted">Actual</span></div>
+  <div class="title"><b>Resumen de deudas y compromisos</b><span class="muted">Actual</span></div>
   <div class="grid">
    <div class="mini"><small>💳 Deuda total</small><strong id="debtTotal">$131,875.21</strong></div>
    <div class="mini"><small>📅 Pagos mínimos</small><strong id="debtPayments">$0</strong></div>
@@ -324,17 +324,18 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 
 <div class="modal" id="debtModal"><div class="sheet">
 <button class="close" onclick="closeDebtModal()">×</button>
-<h3>Nueva deuda o tarjeta</h3>
+<h3 id="debtModalTitle">Nueva deuda o tarjeta</h3>
 <div class="form">
-<label>Nombre</label><input id="debtName" placeholder="Ej. BBVA">
-<label>Tipo</label><select id="debtType"><option>Tarjeta de crédito</option><option>Préstamo</option><option>Otra deuda</option></select>
-<label>Saldo actual</label><input id="debtBalance" type="number" step="0.01">
-<label>Límite de crédito (si aplica)</label><input id="debtLimit" type="number" step="0.01">
-<label>Pago mínimo mensual</label><input id="debtMin" type="number" step="0.01">
+<label>Nombre</label><input id="debtName" placeholder="Ej. BBVA, Terreno, Casa">
+<label>Tipo</label><select id="debtType"><option>Tarjeta de crédito</option><option>Préstamo bancario</option><option>Crédito</option><option>Casa</option><option>Terreno</option><option>Préstamo</option><option>Otra deuda</option></select>
+<label>Saldo actual / cuánto debo</label><input id="debtBalance" type="number" step="0.01" placeholder="0.00">
+<label>Límite de crédito (si aplica)</label><input id="debtLimit" type="number" step="0.01" placeholder="0.00">
+<label>Pago mínimo / pago mensual</label><input id="debtMin" type="number" step="0.01" placeholder="0.00">
 <label>Tasa / interés anual % (opcional)</label><input id="debtRate" type="number" step="0.01">
-<label>Fecha de corte (día)</label><input id="debtCut" type="number" min="1" max="31">
-<label>Fecha límite de pago (día)</label><input id="debtDue" type="number" min="1" max="31">
-<button class="primary" onclick="saveDebt()">Guardar deuda</button>
+<label>Fecha de corte (día, si aplica)</label><input id="debtCut" type="number" min="1" max="31" placeholder="Ej. 15">
+<label>Fecha límite de pago (día)</label><input id="debtDue" type="number" min="1" max="31" placeholder="Ej. 5">
+<label>¿Es un pago mensual recurrente?</label><select id="debtRecurring"><option value="no">No</option><option value="mensual">Sí, mensual</option></select>
+<button class="primary" onclick="saveDebt()">Guardar</button>
 </div></div></div>
 
 <div class="modal" id="modal"><div class="sheet">
@@ -375,16 +376,35 @@ function saveMovement(){
 
 const debtKey='patsy_finance_debts';
 let debts=JSON.parse(localStorage.getItem(debtKey)||'null') || [
- {name:'BBVA',type:'Tarjeta de crédito',balance:100246.81,limit:0,min:5550.37,rate:0,cut:0,due:0},
- {name:'Nu',type:'Tarjeta de crédito',balance:31628.40,limit:0,min:0,rate:0,cut:0,due:0}
+ {name:'BBVA',type:'Tarjeta de crédito',balance:100246.81,limit:0,min:5550.37,rate:0,cut:0,due:0,recurring:'mensual',payments:[]},
+ {name:'Nu',type:'Tarjeta de crédito',balance:31628.40,limit:0,min:0,rate:0,cut:0,due:0,recurring:'mensual',payments:[]}
 ];
-function openDebtModal(){document.getElementById('debtModal').classList.add('show')}
+let editingDebtIndex=-1;
+function openDebtModal(i=-1){
+ editingDebtIndex=i;
+ document.getElementById('debtModalTitle').textContent=i>=0?'Editar deuda o compromiso':'Nueva deuda o tarjeta';
+ const d=i>=0?debts[i]:{};
+ document.getElementById('debtName').value=d.name||'';
+ document.getElementById('debtType').value=d.type||'Tarjeta de crédito';
+ document.getElementById('debtBalance').value=d.balance??'';
+ document.getElementById('debtLimit').value=d.limit||'';
+ document.getElementById('debtMin').value=d.min||'';
+ document.getElementById('debtRate').value=d.rate||'';
+ document.getElementById('debtCut').value=d.cut||'';
+ document.getElementById('debtDue').value=d.due||'';
+ document.getElementById('debtRecurring').value=d.recurring||'no';
+ document.getElementById('debtModal').classList.add('show');
+}
 function closeDebtModal(){document.getElementById('debtModal').classList.remove('show')}
 function saveDebt(){
  const name=document.getElementById('debtName').value.trim()||'Nueva deuda';
- const d={name,type:document.getElementById('debtType').value,balance:Number(document.getElementById('debtBalance').value)||0,limit:Number(document.getElementById('debtLimit').value)||0,min:Number(document.getElementById('debtMin').value)||0,rate:Number(document.getElementById('debtRate').value)||0,cut:Number(document.getElementById('debtCut').value)||0,due:Number(document.getElementById('debtDue').value)||0};
- debts.push(d);localStorage.setItem(debtKey,JSON.stringify(debts));closeDebtModal();renderDashboard();
- ['debtName','debtBalance','debtLimit','debtMin','debtRate','debtCut','debtDue'].forEach(id=>document.getElementById(id).value='');renderDebts();
+ const existing=editingDebtIndex>=0?debts[editingDebtIndex]:{};
+ const d={...existing,name,type:document.getElementById('debtType').value,balance:Number(document.getElementById('debtBalance').value)||0,limit:Number(document.getElementById('debtLimit').value)||0,min:Number(document.getElementById('debtMin').value)||0,rate:Number(document.getElementById('debtRate').value)||0,cut:Number(document.getElementById('debtCut').value)||0,due:Number(document.getElementById('debtDue').value)||0,recurring:document.getElementById('debtRecurring').value,payments:existing.payments||[]};
+ if(editingDebtIndex>=0) debts[editingDebtIndex]=d; else debts.push(d);
+ localStorage.setItem(debtKey,JSON.stringify(debts));
+ closeDebtModal(); renderDebts(); render(); renderDashboard();
+ ['debtName','debtBalance','debtLimit','debtMin','debtRate','debtCut','debtDue'].forEach(id=>document.getElementById(id).value='');
+ editingDebtIndex=-1;
 }
 
 let paymentDebtIndex=-1;
@@ -401,21 +421,21 @@ function savePayment(){
  const amount=Number(document.getElementById('paymentAmount').value);
  if(!amount||amount<=0){alert('Agrega un monto válido.');return}
  const i=paymentDebtIndex;
- const applied=Math.min(amount,debts[i].balance);
- debts[i].balance=Math.max(0,debts[i].balance-applied);
+ const before=debts[i].balance;
+ const applied=before>0?Math.min(amount,before):amount;
+ debts[i].balance=Math.max(0,before-applied);
  debts[i].payments=debts[i].payments||[];
  debts[i].payments.unshift({amount:applied,date:document.getElementById('paymentDate').value||new Date().toISOString().slice(0,10),note:document.getElementById('paymentNote').value.trim()});
  localStorage.setItem(debtKey,JSON.stringify(debts));
  closePaymentModal();renderDebts();render();renderDashboard();
- alert('Pago aplicado. El saldo de '+debts[i].name+' ahora es '+money(debts[i].balance)+'.');
+ alert('Pago registrado. El saldo de '+debts[i].name+' ahora es '+money(debts[i].balance)+'.');
 }
 function showDebtHistory(i){
  const d=debts[i], ps=d.payments||[];
  if(!ps.length){alert('Todavía no hay pagos registrados para '+d.name+'.');return}
  const total=ps.reduce((a,p)=>a+p.amount,0);
- alert('Historial de '+d.name+'\\n\\nTotal abonado: '+money(total)+'\\n\\n'+ps.map(x=>x.date+' — '+money(x.amount)+(x.note?' — '+x.note:'')).join('\\n'));
+ alert('Historial de '+d.name+'\n\nTotal abonado: '+money(total)+'\n\n'+ps.map(x=>x.date+' — '+money(x.amount)+(x.note?' — '+x.note:'')).join('\n'));
 }
-
 function renderDebts(){
  const total=debts.reduce((a,d)=>a+d.balance,0);
  document.getElementById('debtTotal').textContent=money(total);
@@ -425,27 +445,28 @@ function renderDebts(){
  el.innerHTML=debts.map((d,i)=>{
    const available=d.limit?Math.max(0,d.limit-d.balance):null;
    const pct=d.limit?Math.min(100,d.balance/d.limit*100):0;
+   const isRecurring=d.recurring==='mensual';
    return `<div class="card">
-    <div class="title"><b>💳 ${esc(d.name)}</b><span class="chip">${esc(d.type)}</span></div>
+    <div class="title"><b>${d.type==='Terreno'?'🌳':d.type==='Casa'?'🏠':d.type==='Préstamo bancario'?'🏦':d.type==='Crédito'?'💰':'💳'} ${esc(d.name)}</b><span class="chip">${esc(d.type)}</span></div>
     <div class="balance">${money(d.balance)}</div>
     ${d.limit?`<div class="muted">Límite: ${money(d.limit)} · Disponible: ${money(available)}</div><div class="progress" style="margin:10px 0"><div class="bar" style="width:${pct}%"></div></div>`:''}
     <div class="grid" style="margin-top:10px">
-      <div class="mini"><small>Pago mínimo</small><strong>${money(d.min)}</strong></div>
+      <div class="mini"><small>${d.type==='Tarjeta de crédito'?'Pago mínimo':'Pago mensual'}</small><strong>${money(d.min)}</strong></div>
       <div class="mini"><small>Interés anual</small><strong>${d.rate?d.rate+'%':'—'}</strong></div>
       <div class="mini"><small>Corte</small><strong>${d.cut?('Día '+d.cut):'—'}</strong></div>
       <div class="mini"><small>Límite pago</small><strong>${d.due?('Día '+d.due):'—'}</strong></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px">
+    ${isRecurring?`<div class="muted" style="margin-top:10px">🔁 Compromiso mensual · ${d.due?'Pago el día '+d.due:'fecha no configurada'}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="primary" style="margin-top:0;flex:1" onclick="openPaymentModal(${i})">Registrar pago</button>
+      <button onclick="openDebtModal(${i})" style="border:1px solid #eadde5;background:#fff;border-radius:13px;padding:10px;color:#102d63">✏️ Editar</button>
       <button onclick="showDebtHistory(${i})" style="border:1px solid #eadde5;background:#fff;border-radius:13px;padding:10px;color:#102d63">Historial</button>
     </div>
     <button onclick="deleteDebt(${i})" style="border:0;background:none;color:#aaa;font-size:11px;margin-top:10px">Eliminar</button>
    </div>`
  }).join('');
 }
-function deleteDebt(i){if(confirm('¿Eliminar esta deuda?')){debts.splice(i,1);localStorage.setItem(debtKey,JSON.stringify(debts));renderDebts()}}
-
-
+function deleteDebt(i){if(confirm('¿Eliminar esta deuda o compromiso?')){debts.splice(i,1);localStorage.setItem(debtKey,JSON.stringify(debts));renderDebts();render();renderDashboard()}}
 
 
 
