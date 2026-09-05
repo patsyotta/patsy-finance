@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Patsy Finance</title>
+<style>
+:root{
+ --navy:#102d63; --pink:#ed5b91; --pink2:#f9dce8; --blush:#fff5f8;
+ --lav:#eee9ff; --mint:#dff7f3; --line:#eadde5; --text:#273653;
+ --white:#fff; --shadow:0 10px 30px rgba(40,30,70,.09);
+}
+*{box-sizing:border-box} body{margin:0;background:#f7f3f6;font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+button,input,select{font:inherit} button{cursor:pointer}
+.app{max-width:430px;min-height:100vh;margin:auto;background:linear-gradient(#fff,#fff8fb);box-shadow:0 0 40px #d9ccd5}
+header{padding:20px 18px 12px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-family:Georgia,serif;color:var(--navy);font-size:24px}.sub{font-size:11px;color:#777;margin-top:2px}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f3b8ce,#fff);display:grid;place-items:center;font-weight:bold;color:var(--navy)}
+main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef);border:1px solid #f3d5e1;border-radius:18px;padding:14px;margin-bottom:12px}
+.hero b{color:var(--navy)} .quote{font-size:13px;margin-top:4px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;margin:10px 0;box-shadow:var(--shadow)}
+.title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.title b{color:var(--navy)}
+.balance{font-size:28px;font-weight:700;color:var(--navy);margin:3px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.mini{padding:11px;border-radius:14px;background:var(--blush);border:1px solid #f0dce6}.mini:nth-child(2){background:#f0fbf8}.mini:nth-child(3){background:#f4f0ff}.mini:nth-child(4){background:#fff7ec}
+.mini small{display:block;color:#777;font-size:11px}.mini strong{display:block;margin-top:5px}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.action{border:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 4px;color:var(--navy);font-size:11px}.action span{display:block;font-size:21px;margin-bottom:5px}.plus{background:var(--pink);color:#fff;border-radius:50%;width:48px;height:48px;border:4px solid #fff;box-shadow:var(--shadow);font-size:26px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0e8ed}.row:last-child{border-bottom:0}.left{display:flex;gap:10px;align-items:center}.ico{width:34px;height:34px;border-radius:11px;background:#f8e5ed;display:grid;place-items:center}.amount{font-weight:700}.muted{font-size:11px;color:#8b8b8b}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(430px,100%);height:72px;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding:5px 8px 7px;z-index:10}.nav button{border:0;background:transparent;color:#667086;font-size:10px}.nav button.active{color:var(--pink);font-weight:bold}.nav .navplus{margin-top:-28px}
+.section{display:none}.section.active{display:block}
+.form label{display:block;font-size:12px;margin:9px 0 4px;color:#6f7280}.form input,.form select{width:100%;padding:12px;border:1px solid #e5dbe1;border-radius:12px;background:#fff}.primary{width:100%;border:0;border-radius:13px;padding:12px;background:var(--pink);color:#fff;font-weight:bold;margin-top:12px}
+.chip{display:inline-block;padding:6px 9px;border-radius:99px;background:#f8e5ed;color:#9c3d65;font-size:11px;margin:2px}
+.progress{height:9px;background:#eee7ec;border-radius:99px;overflow:hidden}.bar{height:100%;background:linear-gradient(90deg,#ed5b91,#9e77d8);border-radius:99px}
+.empty{padding:22px;text-align:center;color:#888;font-size:13px}
+.modal{position:fixed;inset:0;background:rgba(20,20,40,.38);display:none;align-items:end;justify-content:center;z-index:20}.modal.show{display:flex}.sheet{width:min(430px,100%);background:#fff;border-radius:24px 24px 0 0;padding:18px 16px 25px}.sheet h3{margin:0 0 10px;color:var(--navy)}
+.close{float:right;border:0;background:#f4edf1;border-radius:50%;width:30px;height:30px}
+
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.key{border:1px solid #eadde5;background:#fff;border-radius:13px;padding:14px;font-size:18px;color:#102d63}
+.key.zero{grid-column:span 2}.key.accent{background:#f9dce8;color:#9c3d65;font-weight:bold}
+.quickAmount{background:#fff7fa;border:1px solid #f0d5e2;border-radius:15px;padding:13px;text-align:right;font-size:28px;font-weight:700;color:#102d63}
+.quickCats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}.quickCat{border:1px solid #eadde5;background:#fff;border-radius:12px;padding:8px 3px;font-size:10px}.quickCat.active{background:#f9dce8;border-color:#ed5b91;color:#9c3d65;font-weight:bold}
+
+.aiBox{background:linear-gradient(135deg,#f8f0ff,#fff1f6);border:1px solid #e5d9ef}
+.aiItem{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #eadfe9}.aiItem:last-child{border-bottom:0}
+.aiIcon{width:35px;height:35px;border-radius:12px;background:#fff;display:grid;place-items:center;flex:none}
+.aiTitle{font-weight:700;color:#102d63;font-size:13px}.aiText{font-size:12px;color:#666;margin-top:3px;line-height:1.35}
+
+.calendarGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.dayHead{text-align:center;font-size:9px;color:#888;padding:4px}.day{min-height:42px;border:1px solid #eee4ea;border-radius:10px;padding:5px;font-size:10px;background:#fff}.day.today{border:2px solid #ed5b91}.day.hasPay{background:#fff0f5}.payDot{font-size:9px;color:#b13f6c;margin-top:3px;white-space:nowrap;overflow:hidden}
+.event{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #f0e8ed}.event:last-child{border-bottom:0}.eventDate{width:42px;text-align:center;border-radius:10px;background:#f8e5ed;padding:6px}.eventDate b{display:block;font-size:17px;color:#102d63}.eventDate small{font-size:8px;color:#888}
+.toggle{display:flex;align-items:center;gap:8px;font-size:12px}.toggle input{accent-color:#ed5b91}
+
+.metricBig{font-size:25px;font-weight:700;color:#102d63}.scenario{border:1px solid #eadde5;border-radius:14px;padding:12px;margin:8px 0;background:#fff}.scenario b{color:#102d63}.scenario .small{font-size:11px;color:#777}.pill{display:inline-block;padding:5px 8px;border-radius:99px;background:#f8e5ed;color:#9c3d65;font-size:10px}
+
+.goal{border:1px solid #eadde5;border-radius:16px;padding:13px;margin:9px 0;background:#fff}.goalHead{display:flex;justify-content:space-between;gap:8px}.goalAmt{font-size:20px;font-weight:700;color:#102d63}.goalMeta{font-size:11px;color:#777;margin-top:3px}.recommend{background:linear-gradient(135deg,#fff0f5,#f5efff);border:1px solid #e7dcec}
+</style>
+
+<meta name="theme-color" content="#102d63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Patsy Finance">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div class="app">
+<header>
+ <div><div class="brand">Patsy Finance</div><div class="sub">Organiza tu dinero. Organiza tu vida.</div></div>
+ <div class="avatar">P</div>
+</header>
+
+<main>
+<section id="inicio" class="section active">
+ <div class="hero"><b>Buenos días, Patsy ☀️</b><div class="quote">Pequeños pasos, grandes cambios. 💗</div></div>
+ <div class="card">
+  <div class="title"><b>Resumen financiero</b><span class="muted">Este mes</span></div>
+  <div class="balance" id="balance">$0.00</div>
+  <div class="grid">
+   <div class="mini"><small>💗 Gastos</small><strong id="gastos">$0</strong></div>
+   <div class="mini"><small>💚 Ingresos</small><strong id="ingresos">$0</strong></div>
+   <div class="mini"><small>💜 Ahorro</small><strong id="ahorro">$0</strong></div>
+   <div class="mini"><small>💙 Deudas</small><strong id="deudas">$131,875</strong></div>
+  </div>
+ </div>
+ <div class="actions">
+  <button class="action" onclick="openModal()"><span>↔️</span>Movimientos</button>
+  <button class="action" onclick="openFast()"><span>➕</span>Registrar</button>
+  <button class="action" onclick="show('presupuestos')"><span>🥧</span>Presupuestos</button>
+  <button class="action" onclick="show('cuentas')"><span>💳</span>Cuentas</button>
+ </div>
+ <div class="card"><div class="title"><b>Presupuesto rápido</b><span class="muted">Este mes</span></div>
+  <div class="title"><b>Gastos variables</b><span id="budgetText">$0 / $8,000</span></div>
+  <div class="progress"><div id="budgetBar" class="bar" style="width:0%"></div></div>
+ </div>
+ 
+<div class="card" id="quickExpenseCard">
+ <div class="title"><b>⚡ Gasto rápido</b><span class="muted">Sin complicarte</span></div>
+ <div class="grid">
+  <button class="action" onclick="openFast('Comida')"><span>🍔</span>Comida</button>
+  <button class="action" onclick="openFast('Gasolina')"><span>⛽</span>Gasolina</button>
+  <button class="action" onclick="openFast('Súper')"><span>🛒</span>Súper</button>
+  <button class="action" onclick="openFast('Gasto hormiga')"><span>🐜</span>Hormiga</button>
+ </div>
+ <button class="primary" onclick="openFast()">＋ Registrar otro gasto</button>
+</div>
+
+ <div class="card"><div class="title"><b>Próximos pagos</b><span class="muted">Ver calendario</span></div>
+  <div class="row"><div class="left"><div class="ico">💳</div><div><b>Tarjeta BBVA</b><div class="muted">Pago próximo</div></div></div><div><div class="amount">$5,550</div><div class="muted">25 Jul</div></div></div>
+  <div class="row"><div class="left"><div class="ico">🏠</div><div><b>Préstamo personal</b><div class="muted">Pago mensual</div></div></div><div><div class="amount">$3,500</div><div class="muted">27 Jul</div></div></div>
+  <div class="row"><div class="left"><div class="ico">🌐</div><div><b>Internet</b><div class="muted">Servicio</div></div></div><div><div class="amount">$980</div><div class="muted">30 Jul</div></div></div>
+ </div>
+ <div class="card"><div class="title"><b>Mis metas</b><span class="muted">Ver todas</span></div>
+  <div class="row"><div><b>🚨 Fondo de emergencia</b><div class="progress" style="width:190px;margin-top:7px"><div class="bar" style="width:72%"></div></div></div><b>72%</b></div>
+  <div class="row"><div><b>✈️ Viaje a Cancún</b><div class="progress" style="width:190px;margin-top:7px"><div class="bar" style="width:40%"></div></div></div><b>40%</b></div>
+ </div>
+ 
+<div class="card">
+ <div class="title"><b>🐜 Gastos hormiga</b><span class="chip">Este mes</span></div>
+ <div class="balance" id="antTotal">$0</div>
+ <div class="muted">Pequeños gastos que juntos pueden hacer una gran diferencia.</div>
+ <div class="grid" style="margin-top:10px">
+  <div class="mini"><small>Movimientos</small><strong id="antCount">0</strong></div>
+  <div class="mini"><small>Promedio</small><strong id="antAvg">$0</strong></div>
+ </div>
+</div>
+
+ <div class="card aiBox">
+ <div class="title"><b>✨ Patsy AI</b><span class="chip">Tu asistente</span></div>
+ <div id="aiInsights"></div>
+ <button class="primary" onclick="refreshAI()">✨ Analizar mis finanzas</button>
+</div>
+</section>
+
+<section id="movimientos" class="section">
+ <div class="title"><h2>Movimientos</h2><button class="plus" onclick="openModal()">+</button></div>
+ <div class="card">
+   <div class="title"><b>Resumen del mes</b><span id="monthLabel" class="muted"></span></div>
+   <div class="grid"><div class="mini"><small>Ingresos</small><strong id="movIng">$0</strong></div><div class="mini"><small>Gastos</small><strong id="movGas">$0</strong></div></div>
+ </div>
+ <div class="card"><div class="title"><b>Últimos movimientos</b><span class="muted">Guardados en este dispositivo</span></div><div id="movList"></div></div>
+</section>
+
+<section id="presupuestos" class="section">
+ <div class="title"><h2>Presupuestos</h2><button class="plus" onclick="openModal('presupuesto')">+</button></div>
+ <div class="card">
+  <div class="title"><b>🍽️ Comida</b><span>$3,200 / $5,000</span></div><div class="progress"><div class="bar" style="width:64%"></div></div>
+  <div class="title" style="margin-top:16px"><b>⛽ Gasolina</b><span>$2,000 / $2,500</span></div><div class="progress"><div class="bar" style="width:80%"></div></div>
+  <div class="title" style="margin-top:16px"><b>🏠 Hogar</b><span>$5,980 / $6,000</span></div><div class="progress"><div class="bar" style="width:99%"></div></div>
+ </div>
+</section>
+
+<section id="cuentas" class="section">
+ <div class="title"><h2>Cuentas y tarjetas</h2><button class="plus" onclick="openModal('cuenta')">+</button></div>
+ <div class="card"><div class="title"><b>💳 BBVA</b><span class="chip">Crédito</span></div><div class="balance">$100,246.81</div><div class="muted">Pago mínimo: $5,550.37</div><div class="muted">Fecha límite: próxima</div></div>
+ <div class="card"><div class="title"><b>💜 Nu</b><span class="chip">Crédito</span></div><div class="balance">$31,628.40</div><div class="muted">Registra aquí corte, límite y pagos.</div></div>
+ <div class="card"><div class="title"><b>💵 Efectivo / banco</b><span class="chip">Disponible</span></div><div class="balance" id="cuentaDisponible">$0.00</div></div>
+</section>
+
+
+<section id="deudas" class="section">
+ <div class="title"><h2>Deudas y tarjetas</h2><button class="plus" onclick="openDebtModal()">+</button></div>
+ <div class="card">
+  <div class="title"><b>Resumen de deudas</b><span class="muted">Actual</span></div>
+  <div class="grid">
+   <div class="mini"><small>💳 Deuda total</small><strong id="debtTotal">$131,875.21</strong></div>
+   <div class="mini"><small>📅 Pagos mínimos</small><strong id="debtPayments">$0</strong></div>
+   <div class="mini"><small>✅ Total abonado</small><strong id="debtPaid">$0</strong></div>
+  </div>
+ </div>
+ <div id="debtList"></div>
+ <div class="card">
+  <div class="title"><b>🎯 Estrategia de pago</b><span class="chip">Patsy AI</span></div>
+  <div class="muted">Registra tus pagos y la app podrá comparar qué deuda conviene atacar primero según saldo, interés y pago mensual.</div>
+  <button class="primary" onclick="alert('En la siguiente versión conectaremos esta sección con un plan automático de liquidación.')">Analizar mi plan</button>
+ </div>
+</section>
+
+
+
+
+
+<section id="metas" class="section">
+ <div class="title"><h2>🎯 Mis metas</h2><button class="plus" onclick="openGoalModal()">+</button></div>
+ <div class="card">
+  <div class="title"><b>Objetivos financieros</b><span class="muted">Ahorro y compras</span></div>
+  <div id="goalList"></div>
+ </div>
+ <div class="card recommend">
+  <div class="title"><b>🚀 Meta + deuda</b><span class="pill">Patsy AI</span></div>
+  <div id="goalAdvice" class="muted">Crea una meta y Patsy AI calculará una aportación sugerida.</div>
+ </div>
+</section>
+
+<section id="dashboard" class="section">
+ <div class="title"><h2>📊 Mi panorama</h2></div>
+ <div class="card aiBox">
+  <div class="title"><b>Tu situación hoy</b><span class="pill">Actualizable</span></div>
+  <div class="grid">
+   <div class="mini"><small>💳 Deuda total</small><strong id="dashDebt">$0</strong></div>
+   <div class="mini"><small>💰 Ingresos registrados</small><strong id="dashIncome">$0</strong></div>
+   <div class="mini"><small>💸 Gastos registrados</small><strong id="dashExpense">$0</strong></div>
+   <div class="mini"><small>💗 Disponible registrado</small><strong id="dashNet">$0</strong></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="title"><b>📉 Progreso para liberar tus tarjetas</b><span id="dashPaidPct" class="pill">0%</span></div>
+  <div class="balance" id="dashPaid">$0</div>
+  <div class="muted">Total abonado desde que empezaste a registrar pagos.</div>
+  <div class="progress" style="margin-top:10px"><div id="dashDebtBar" class="bar" style="width:0%"></div></div>
+ </div>
+ <div class="card">
+  <div class="title"><b>🚀 ¿Qué pasa si recortas gastos?</b><span class="muted">Simulación</span></div>
+  <div class="scenario"><b>🟢 Conservador</b><div class="small">Liberar $1,000 al mes para deuda</div><div id="s1" class="metricBig">—</div><div class="small">Aporte adicional mensual</div></div>
+  <div class="scenario"><b>🟡 Realista</b><div class="small">Liberar $2,500 al mes para deuda</div><div id="s2" class="metricBig">—</div><div class="small">Aporte adicional mensual</div></div>
+  <div class="scenario"><b>🔴 Acelerado</b><div class="small">Liberar $4,000 al mes para deuda</div><div id="s3" class="metricBig">—</div><div class="small">Aporte adicional mensual</div></div>
+  <div class="muted" style="margin-top:10px">Estas son simulaciones simples y no incluyen intereses futuros. Al agregar tasas reales, podremos calcular fechas más precisas.</div>
+ </div>
+ <div class="card">
+  <div class="title"><b>✨ Recomendación de Patsy AI</b></div>
+  <div id="dashAdvice" class="muted">Registra más movimientos para obtener una recomendación personalizada.</div>
+ </div>
+</section>
+
+<section id="calendario" class="section">
+ <div class="title"><h2>📅 Calendario</h2><button class="plus" onclick="openEventModal()">+</button></div>
+ <div class="card">
+  <div class="title"><button onclick="changeMonth(-1)" style="border:0;background:none">‹</button><b id="calMonth"></b><button onclick="changeMonth(1)" style="border:0;background:none">›</button></div>
+  <div class="calendarGrid" id="calendarGrid"></div>
+ </div>
+ <div class="card"><div class="title"><b>Próximos compromisos</b><span class="muted">Pagos y recurrentes</span></div><div id="eventList"></div></div>
+ <div class="card aiBox"><b>💡 Antes de gastar</b><p id="cashWarning" class="muted">Registra tus pagos próximos para saber cuánto necesitas apartar.</p></div>
+</section>
+
+<section id="ai" class="section">
+ <div class="title"><h2>✨ Patsy AI</h2></div>
+ <div class="card aiBox">
+  <div class="title"><b>Tu resumen inteligente</b><span class="muted">Con tus datos registrados</span></div>
+  <div id="aiFull"></div>
+  <button class="primary" onclick="refreshAI()">Actualizar análisis</button>
+ </div>
+ <div class="card">
+  <b>💡 Cómo funciona</b>
+  <p class="muted">Mientras más gastos e ingresos registres, mejores serán las señales: gastos hormiga, categorías que suben, presupuesto disponible y capacidad de pago.</p>
+ </div>
+</section>
+
+<section id="reportes" class="section">
+ <div class="title"><h2>Reportes</h2></div>
+ <div class="card"><b>Tu panorama</b><div class="grid" style="margin-top:12px"><div class="mini"><small>Gasto diario promedio</small><strong id="promedio">$0</strong></div><div class="mini"><small>Movimientos</small><strong id="conteo">0</strong></div></div></div>
+ <div class="card"><b>Consejo de Patsy AI ✨</b><p class="muted">Registra tus gastos durante la semana para detectar dónde se está yendo más dinero y ajustar tus presupuestos.</p></div>
+</section>
+</main>
+
+<nav class="nav">
+ <button class="active" onclick="show('inicio',this)">⌂<br>Inicio</button>
+ <button onclick="show('movimientos',this)">↔<br>Movimientos</button>
+ <button class="navplus" onclick="openFast()"><span class="plus">+</span><br></button>
+ <button onclick="show('reportes',this)">▥<br>Reportes</button>
+ <button onclick="show('calendario',this)">📅<br>Calendario</button>
+</nav>
+</div>
+
+
+
+
+
+
+<div class="modal" id="goalModal"><div class="sheet">
+<button class="close" onclick="closeGoalModal()">×</button>
+<h3>🎯 Nueva meta</h3>
+<div class="form">
+<label>Nombre</label><input id="goalName" placeholder="Ej. Fondo de emergencia">
+<label>Monto objetivo</label><input id="goalTarget" type="number" step="0.01">
+<label>Ya tengo ahorrado</label><input id="goalSaved" type="number" step="0.01" value="0">
+<label>Fecha objetivo</label><input id="goalDate" type="date">
+<button class="primary" onclick="saveGoal()">Guardar meta</button>
+</div></div></div>
+
+<div class="modal" id="eventModal"><div class="sheet">
+<button class="close" onclick="closeEventModal()">×</button>
+<h3>📅 Nuevo compromiso</h3>
+<div class="form">
+<label>Concepto</label><input id="eventName" placeholder="Ej. Internet, Casa, BBVA">
+<label>Monto</label><input id="eventAmount" type="number" step="0.01" placeholder="0.00">
+<label>Fecha</label><input id="eventDate" type="date">
+<label>Tipo</label><select id="eventType"><option>Pago</option><option>Ingreso esperado</option></select>
+<label class="toggle"><input id="eventRepeat" type="checkbox"> Repetir cada mes</label>
+<button class="primary" onclick="saveEvent()">Guardar en calendario</button>
+</div></div></div>
+
+<div class="modal" id="fastModal"><div class="sheet">
+<button class="close" onclick="closeFast()">×</button>
+<h3>⚡ Gasto rápido</h3>
+<div class="quickAmount" id="fastAmount">$0</div>
+<div class="quickCats">
+ <button class="quickCat active" data-cat="Comida" onclick="fastCat(this)">🍔<br>Comida</button>
+ <button class="quickCat" data-cat="Gasolina" onclick="fastCat(this)">⛽<br>Gasolina</button>
+ <button class="quickCat" data-cat="Súper" onclick="fastCat(this)">🛒<br>Súper</button>
+ <button class="quickCat" data-cat="Gasto hormiga" onclick="fastCat(this)">🐜<br>Hormiga</button>
+ <button class="quickCat" data-cat="Hogar" onclick="fastCat(this)">🏠<br>Hogar</button>
+ <button class="quickCat" data-cat="Familia" onclick="fastCat(this)">👨‍👩‍👧<br>Familia</button>
+ <button class="quickCat" data-cat="Compras" onclick="fastCat(this)">🛍️<br>Compras</button>
+ <button class="quickCat" data-cat="Otros" onclick="fastCat(this)">✨<br>Otro</button>
+</div>
+<div class="keypad">
+ <button class="key" onclick="keyIn('1')">1</button><button class="key" onclick="keyIn('2')">2</button><button class="key" onclick="keyIn('3')">3</button>
+ <button class="key" onclick="keyIn('4')">4</button><button class="key" onclick="keyIn('5')">5</button><button class="key" onclick="keyIn('6')">6</button>
+ <button class="key" onclick="keyIn('7')">7</button><button class="key" onclick="keyIn('8')">8</button><button class="key" onclick="keyIn('9')">9</button>
+ <button class="key accent" onclick="keyIn('0')">0</button><button class="key" onclick="keyIn('.')">.</button><button class="key" onclick="keyBack()">⌫</button>
+</div>
+<button class="primary" onclick="saveFast()">Guardar gasto</button>
+</div></div>
+
+<div class="modal" id="paymentModal"><div class="sheet">
+<button class="close" onclick="closePaymentModal()">×</button>
+<h3>Registrar pago</h3>
+<div class="form">
+<label>Deuda</label><input id="paymentDebtName" disabled>
+<label>Monto pagado</label><input id="paymentAmount" type="number" step="0.01" placeholder="0.00">
+<label>Fecha</label><input id="paymentDate" type="date">
+<label>Nota</label><input id="paymentNote" placeholder="Ej. pago mínimo / abono extra">
+<button class="primary" onclick="savePayment()">Aplicar pago</button>
+</div></div></div>
+
+<div class="modal" id="debtModal"><div class="sheet">
+<button class="close" onclick="closeDebtModal()">×</button>
+<h3>Nueva deuda o tarjeta</h3>
+<div class="form">
+<label>Nombre</label><input id="debtName" placeholder="Ej. BBVA">
+<label>Tipo</label><select id="debtType"><option>Tarjeta de crédito</option><option>Préstamo</option><option>Otra deuda</option></select>
+<label>Saldo actual</label><input id="debtBalance" type="number" step="0.01">
+<label>Límite de crédito (si aplica)</label><input id="debtLimit" type="number" step="0.01">
+<label>Pago mínimo mensual</label><input id="debtMin" type="number" step="0.01">
+<label>Tasa / interés anual % (opcional)</label><input id="debtRate" type="number" step="0.01">
+<label>Fecha de corte (día)</label><input id="debtCut" type="number" min="1" max="31">
+<label>Fecha límite de pago (día)</label><input id="debtDue" type="number" min="1" max="31">
+<button class="primary" onclick="saveDebt()">Guardar deuda</button>
+</div></div></div>
+
+<div class="modal" id="modal"><div class="sheet">
+<button class="close" onclick="closeModal()">×</button>
+<h3 id="modalTitle">Registrar gasto</h3>
+<div class="form">
+<label>Tipo</label><select id="tipo"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select>
+<label>Concepto</label><input id="concepto" placeholder="Ej. gasolina, comida, comisión">
+<label>Monto</label><input id="monto" type="number" step="0.01" placeholder="0.00">
+<label>Categoría</label><select id="categoria"><option>Comida</option><option>Gasolina</option><option>Hogar</option><option>Familia</option><option>Salud</option><option>Sonograph</option><option>Compras</option><option>Servicios</option><option>Educación</option><option>Otros</option></select>
+<label>Cuenta</label><select id="cuenta"><option>Efectivo</option><option>BBVA</option><option>Nu</option><option>Otra cuenta</option></select>
+<label>Fecha</label><input id="fecha" type="date">
+<label>¿Es recurrente?</label><select id="recurrente"><option value="no">No</option><option value="mensual">Sí, mensual</option></select>
+<label>Nota (opcional)</label><input id="nota" placeholder="Algún detalle para recordar">
+<button class="primary" onclick="saveMovement()">Guardar movimiento</button>
+</div></div></div>
+
+<script>
+const key='patsy_finance_movs';
+let movs=JSON.parse(localStorage.getItem(key)||'[]');
+const money=n=>n.toLocaleString('es-MX',{style:'currency',currency:'MXN'});
+function show(id,btn){
+ document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ if(btn){document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+ render();
+}
+function openModal(){document.getElementById('fecha').value=new Date().toISOString().slice(0,10);document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function saveMovement(){
+ const tipo=document.getElementById('tipo').value, concepto=document.getElementById('concepto').value.trim()||'Sin concepto', monto=Number(document.getElementById('monto').value), categoria=document.getElementById('categoria').value, cuenta=document.getElementById('cuenta').value, fecha=document.getElementById('fecha').value, recurrente=document.getElementById('recurrente').value, nota=document.getElementById('nota').value.trim();
+ if(!monto||monto<=0){alert('Agrega un monto válido.');return}
+ movs.unshift({tipo,concepto,monto,categoria,cuenta,fecha:fecha?new Date(fecha+'T12:00:00').toLocaleDateString('es-MX'):new Date().toLocaleDateString('es-MX'),recurrente,nota});
+ localStorage.setItem(key,JSON.stringify(movs));closeModal();
+ document.getElementById('concepto').value='';document.getElementById('monto').value='';document.getElementById('nota').value='';
+ render();show('movimientos');
+}
+
+const debtKey='patsy_finance_debts';
+let debts=JSON.parse(localStorage.getItem(debtKey)||'null') || [
+ {name:'BBVA',type:'Tarjeta de crédito',balance:100246.81,limit:0,min:5550.37,rate:0,cut:0,due:0},
+ {name:'Nu',type:'Tarjeta de crédito',balance:31628.40,limit:0,min:0,rate:0,cut:0,due:0}
+];
+function openDebtModal(){document.getElementById('debtModal').classList.add('show')}
+function closeDebtModal(){document.getElementById('debtModal').classList.remove('show')}
+function saveDebt(){
+ const name=document.getElementById('debtName').value.trim()||'Nueva deuda';
+ const d={name,type:document.getElementById('debtType').value,balance:Number(document.getElementById('debtBalance').value)||0,limit:Number(document.getElementById('debtLimit').value)||0,min:Number(document.getElementById('debtMin').value)||0,rate:Number(document.getElementById('debtRate').value)||0,cut:Number(document.getElementById('debtCut').value)||0,due:Number(document.getElementById('debtDue').value)||0};
+ debts.push(d);localStorage.setItem(debtKey,JSON.stringify(debts));closeDebtModal();renderDashboard();
+ ['debtName','debtBalance','debtLimit','debtMin','debtRate','debtCut','debtDue'].forEach(id=>document.getElementById(id).value='');renderDebts();
+}
+
+let paymentDebtIndex=-1;
+function openPaymentModal(i){
+ paymentDebtIndex=i;
+ document.getElementById('paymentDebtName').value=debts[i].name;
+ document.getElementById('paymentDate').value=new Date().toISOString().slice(0,10);
+ document.getElementById('paymentAmount').value='';
+ document.getElementById('paymentNote').value='';
+ document.getElementById('paymentModal').classList.add('show');
+}
+function closePaymentModal(){document.getElementById('paymentModal').classList.remove('show')}
+function savePayment(){
+ const amount=Number(document.getElementById('paymentAmount').value);
+ if(!amount||amount<=0){alert('Agrega un monto válido.');return}
+ const i=paymentDebtIndex;
+ const applied=Math.min(amount,debts[i].balance);
+ debts[i].balance=Math.max(0,debts[i].balance-applied);
+ debts[i].payments=debts[i].payments||[];
+ debts[i].payments.unshift({amount:applied,date:document.getElementById('paymentDate').value||new Date().toISOString().slice(0,10),note:document.getElementById('paymentNote').value.trim()});
+ localStorage.setItem(debtKey,JSON.stringify(debts));
+ closePaymentModal();renderDebts();render();renderDashboard();
+ alert('Pago aplicado. El saldo de '+debts[i].name+' ahora es '+money(debts[i].balance)+'.');
+}
+function showDebtHistory(i){
+ const d=debts[i], ps=d.payments||[];
+ if(!ps.length){alert('Todavía no hay pagos registrados para '+d.name+'.');return}
+ const total=ps.reduce((a,p)=>a+p.amount,0);
+ alert('Historial de '+d.name+'\\n\\nTotal abonado: '+money(total)+'\\n\\n'+ps.map(x=>x.date+' — '+money(x.amount)+(x.note?' — '+x.note:'')).join('\\n'));
+}
+
+function renderDebts(){
+ const total=debts.reduce((a,d)=>a+d.balance,0);
+ document.getElementById('debtTotal').textContent=money(total);
+ document.getElementById('debtPayments').textContent=money(debts.reduce((a,d)=>a+d.min,0));
+ document.getElementById('debtPaid').textContent=money(debts.reduce((a,d)=>a+(d.payments||[]).reduce((s,p)=>s+p.amount,0),0));
+ const el=document.getElementById('debtList');
+ el.innerHTML=debts.map((d,i)=>{
+   const available=d.limit?Math.max(0,d.limit-d.balance):null;
+   const pct=d.limit?Math.min(100,d.balance/d.limit*100):0;
+   return `<div class="card">
+    <div class="title"><b>💳 ${esc(d.name)}</b><span class="chip">${esc(d.type)}</span></div>
+    <div class="balance">${money(d.balance)}</div>
+    ${d.limit?`<div class="muted">Límite: ${money(d.limit)} · Disponible: ${money(available)}</div><div class="progress" style="margin:10px 0"><div class="bar" style="width:${pct}%"></div></div>`:''}
+    <div class="grid" style="margin-top:10px">
+      <div class="mini"><small>Pago mínimo</small><strong>${money(d.min)}</strong></div>
+      <div class="mini"><small>Interés anual</small><strong>${d.rate?d.rate+'%':'—'}</strong></div>
+      <div class="mini"><small>Corte</small><strong>${d.cut?('Día '+d.cut):'—'}</strong></div>
+      <div class="mini"><small>Límite pago</small><strong>${d.due?('Día '+d.due):'—'}</strong></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary" style="margin-top:0;flex:1" onclick="openPaymentModal(${i})">Registrar pago</button>
+      <button onclick="showDebtHistory(${i})" style="border:1px solid #eadde5;background:#fff;border-radius:13px;padding:10px;color:#102d63">Historial</button>
+    </div>
+    <button onclick="deleteDebt(${i})" style="border:0;background:none;color:#aaa;font-size:11px;margin-top:10px">Eliminar</button>
+   </div>`
+ }).join('');
+}
+function deleteDebt(i){if(confirm('¿Eliminar esta deuda?')){debts.splice(i,1);localStorage.setItem(debtKey,JSON.stringify(debts));renderDebts()}}
+
+
+
+
+
+const goalKey='patsy_finance_goals';
+let goals=JSON.parse(localStorage.getItem(goalKey)||'[]');
+function openGoalModal(){document.getElementById('goalDate').value=new Date(new Date().setMonth(new Date().getMonth()+3)).toISOString().slice(0,10);document.getElementById('goalModal').classList.add('show')}
+function closeGoalModal(){document.getElementById('goalModal').classList.remove('show')}
+function saveGoal(){
+ const name=document.getElementById('goalName').value.trim()||'Nueva meta', target=Number(document.getElementById('goalTarget').value)||0, saved=Number(document.getElementById('goalSaved').value)||0, date=document.getElementById('goalDate').value;
+ if(target<=0||!date){alert('Agrega monto objetivo y fecha.');return}
+ goals.push({name,target,saved:Math.min(saved,target),date});localStorage.setItem(goalKey,JSON.stringify(goals));closeGoalModal();
+ document.getElementById('goalName').value='';document.getElementById('goalTarget').value='';document.getElementById('goalSaved').value='0';renderGoals();
+}
+function renderGoals(){
+ const el=document.getElementById('goalList');
+ if(!goals.length){el.innerHTML='<div class="empty">Aún no tienes metas. Crea la primera con + 💗</div>';document.getElementById('goalAdvice').textContent='Crea una meta y Patsy AI calculará una aportación sugerida.';return}
+ el.innerHTML=goals.map((g,i)=>{
+  const pct=Math.min(100,g.saved/g.target*100), remain=Math.max(0,g.target-g.saved);
+  const end=new Date(g.date+'T12:00:00'), now=new Date(), months=Math.max(1,(end.getFullYear()-now.getFullYear())*12+end.getMonth()-now.getMonth());
+  const monthly=remain/months;
+  return `<div class="goal"><div class="goalHead"><div><b>${esc(g.name)}</b><div class="goalMeta">Objetivo: ${money(g.target)} · Fecha: ${end.toLocaleDateString('es-MX')}</div></div><b>${pct.toFixed(0)}%</b></div>
+   <div class="progress" style="margin:9px 0"><div class="bar" style="width:${pct}%"></div></div>
+   <div class="goalMeta">Faltan ${money(remain)} · Sugerencia: ${money(monthly)}/mes</div>
+   <button onclick="addGoalMoney(${i})" style="margin-top:8px;border:1px solid #eadde5;background:#fff;border-radius:10px;padding:7px;color:#102d63;font-size:11px">+ Aportar</button>
+   <button onclick="deleteGoal(${i})" style="margin-top:8px;border:0;background:none;color:#aaa;font-size:11px">Eliminar</button>
+  </div>`;
+ }).join('');
+ const first=goals[0], remain=Math.max(0,first.target-first.saved);
+ const end=new Date(first.date+'T12:00:00'), now=new Date(), months=Math.max(1,(end.getFullYear()-now.getFullYear())*12+end.getMonth()-now.getMonth());
+ document.getElementById('goalAdvice').textContent=`Para “${first.name}” te faltan ${money(remain)}. La aportación sugerida es de ${money(remain/months)} al mes. Si ese monto compite con tus pagos de deuda, Patsy AI podrá comparar ambos objetivos y priorizar.`;
+}
+function addGoalMoney(i){
+ const amount=Number(prompt('¿Cuánto quieres aportar?')||0);if(!amount||amount<=0)return;
+ goals[i].saved=Math.min(goals[i].target,goals[i].saved+amount);localStorage.setItem(goalKey,JSON.stringify(goals));renderGoals();
+}
+function deleteGoal(i){if(confirm('¿Eliminar esta meta?')){goals.splice(i,1);localStorage.setItem(goalKey,JSON.stringify(goals));renderGoals()}}
+
+function renderDashboard(){
+ const income=movs.filter(x=>x.tipo==='ingreso').reduce((a,x)=>a+x.monto,0);
+ const expense=movs.filter(x=>x.tipo==='gasto').reduce((a,x)=>a+x.monto,0);
+ const debt=debts.reduce((a,d)=>a+d.balance,0);
+ const paid=debts.reduce((a,d)=>a+(d.payments||[]).reduce((s,p)=>s+p.amount,0),0);
+ const original=debt+paid;
+ const pct=original?Math.min(100,paid/original*100):0;
+ document.getElementById('dashDebt').textContent=money(debt);
+ document.getElementById('dashIncome').textContent=money(income);
+ document.getElementById('dashExpense').textContent=money(expense);
+ document.getElementById('dashNet').textContent=money(income-expense);
+ document.getElementById('dashPaid').textContent=money(paid);
+ document.getElementById('dashPaidPct').textContent=pct.toFixed(0)+'%';
+ document.getElementById('dashDebtBar').style.width=pct+'%';
+ document.getElementById('s1').textContent=debt?('≈ '+Math.ceil(debt/1000)+' meses*'): '—';
+ document.getElementById('s2').textContent=debt?('≈ '+Math.ceil(debt/2500)+' meses*'): '—';
+ document.getElementById('s3').textContent=debt?('≈ '+Math.ceil(debt/4000)+' meses*'): '—';
+ const cuts=Math.max(0,8000-expense);
+ document.getElementById('dashAdvice').textContent=expense===0
+ ? 'Registra tus gastos diarios y Patsy AI podrá identificar dónde puedes liberar dinero.'
+ : `Has registrado ${money(expense)} en gastos. Si encuentras recortes sostenibles, ese dinero puede convertirse en abonos extra para tus deudas.`;
+}
+
+const eventKey='patsy_finance_events';
+let events=JSON.parse(localStorage.getItem(eventKey)||'[]');
+let calDate=new Date();
+function openEventModal(){
+ document.getElementById('eventDate').value=new Date().toISOString().slice(0,10);
+ document.getElementById('eventModal').classList.add('show');
+}
+function closeEventModal(){document.getElementById('eventModal').classList.remove('show')}
+function saveEvent(){
+ const name=document.getElementById('eventName').value.trim()||'Compromiso';
+ const amount=Number(document.getElementById('eventAmount').value)||0;
+ const date=document.getElementById('eventDate').value;
+ if(!date||amount<=0){alert('Agrega fecha y monto.');return}
+ events.push({name,amount,date,type:document.getElementById('eventType').value,repeat:document.getElementById('eventRepeat').checked});
+ localStorage.setItem(eventKey,JSON.stringify(events));closeEventModal();
+ document.getElementById('eventName').value='';document.getElementById('eventAmount').value='';renderCalendar();
+}
+function changeMonth(n){calDate.setMonth(calDate.getMonth()+n);renderCalendar()}
+function renderCalendar(){
+ const y=calDate.getFullYear(),m=calDate.getMonth();
+ document.getElementById('calMonth').textContent=calDate.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+ const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+ const heads=['D','L','M','M','J','V','S'];let out=heads.map(x=>`<div class="dayHead">${x}</div>`).join('');
+ for(let i=0;i<first;i++)out+='<div></div>';
+ for(let d=1;d<=days;d++){
+   const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+   const ev=events.filter(e=>e.date===iso || (e.repeat && Number(e.date.slice(8,10))===d));
+   const today=new Date();const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+   out+=`<div class="day ${isToday?'today':''} ${ev.length?'hasPay':''}"><b>${d}</b>${ev.slice(0,2).map(e=>`<div class="payDot">${e.type==='Ingreso esperado'?'↑':'↓'} ${money(e.amount)}</div>`).join('')}</div>`;
+ }
+ document.getElementById('calendarGrid').innerHTML=out;
+ const upcoming=events.map((e,i)=>({...e,i,dateObj:new Date(e.date+'T12:00:00')})).filter(e=>e.dateObj>=new Date(new Date().toDateString())).sort((a,b)=>a.dateObj-b.dateObj).slice(0,8);
+ document.getElementById('eventList').innerHTML=upcoming.length?upcoming.map(e=>`<div class="event"><div class="left"><div class="eventDate"><b>${e.dateObj.getDate()}</b><small>${e.dateObj.toLocaleDateString('es-MX',{month:'short'}).toUpperCase()}</small></div><div><b>${esc(e.name)}</b><div class="muted">${esc(e.type)}${e.repeat?' · 🔁 mensual':''}</div></div></div><div style="font-weight:700;color:${e.type==='Ingreso esperado'?'#3a9b78':'#d14f78'}">${e.type==='Ingreso esperado'?'+':'-'}${money(e.amount)}</div></div>`).join(''):'<div class="empty">No hay compromisos próximos registrados.</div>';
+ const nextOut=upcoming.filter(e=>e.type==='Pago').slice(0,5).reduce((a,e)=>a+e.amount,0);
+ document.getElementById('cashWarning').textContent=nextOut?`Tienes ${money(nextOut)} en pagos próximos registrados. Apartar ese dinero primero te ayudará a no depender de la tarjeta.`:'Registra tus pagos próximos para saber cuánto necesitas apartar.';
+}
+
+function aiData(){
+ const ing=movs.filter(x=>x.tipo==='ingreso').reduce((a,x)=>a+x.monto,0);
+ const gas=movs.filter(x=>x.tipo==='gasto').reduce((a,x)=>a+x.monto,0);
+ const ant=movs.filter(x=>x.tipo==='gasto' && (x.categoria==='Gasto hormiga'||x.concepto.toLowerCase().includes('hormiga')));
+ const cats={};movs.filter(x=>x.tipo==='gasto').forEach(x=>cats[x.categoria]=(cats[x.categoria]||0)+x.monto);
+ const top=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
+ const debt=debts.reduce((a,d)=>a+d.balance,0);
+ const mins=debts.reduce((a,d)=>a+d.min,0);
+ return {ing,gas,antTotal:ant.reduce((a,x)=>a+x.monto,0),antCount:ant.length,top,debt,mins,net:ing-gas};
+}
+function insightHTML(){
+ const d=aiData(), items=[];
+ if(d.antTotal>0) items.push(['🐜','Gastos hormiga',`Llevas ${money(d.antTotal)} en ${d.antCount} gasto${d.antCount===1?'':'s'} hormiga.`]);
+ if(d.top) items.push(['📊','Categoría principal',`${d.top[0]} concentra ${money(d.top[1])} de tus gastos registrados.`]);
+ if(d.net>=0) items.push(['💗','Dinero después de gastos',`Tu balance registrado es ${money(d.net)}. Puedes decidir cuánto apartar para ahorro o deuda.`]);
+ else items.push(['⚠️','Balance',`Tus gastos registrados superan tus ingresos por ${money(Math.abs(d.net))}. Conviene revisar los próximos pagos.`]);
+ if(d.mins>0) items.push(['💳','Compromisos mínimos',`Tus deudas registradas requieren al menos ${money(d.mins)} según los pagos mínimos capturados.`]);
+ if(!items.length) items.push(['✨','Empecemos','Registra algunos ingresos y gastos y Patsy AI comenzará a encontrar patrones.']);
+ return items;
+}
+function refreshAI(){
+ const items=insightHTML();
+ const html=items.map(x=>`<div class="aiItem"><div class="aiIcon">${x[0]}</div><div><div class="aiTitle">${esc(x[1])}</div><div class="aiText">${esc(x[2])}</div></div></div>`).join('');
+ document.getElementById('aiInsights').innerHTML=html;
+ document.getElementById('aiFull').innerHTML=html;
+}
+
+function render(){
+ const ing=movs.filter(x=>x.tipo==='ingreso').reduce((a,x)=>a+x.monto,0);
+ const gas=movs.filter(x=>x.tipo==='gasto').reduce((a,x)=>a+x.monto,0);
+ document.getElementById('ingresos').textContent=money(ing);
+ document.getElementById('gastos').textContent=money(gas);
+ document.getElementById('balance').textContent=money(ing-gas);
+ document.getElementById('cuentaDisponible').textContent=money(ing-gas);
+ document.getElementById('ahorro').textContent=money(Math.max(0,ing-gas));
+ document.getElementById('promedio').textContent=money(movs.length?gas/Math.max(1,new Date().getDate()):0);
+ document.getElementById('conteo').textContent=movs.length;
+ const budget=8000;
+ const budgetUsed=Math.min(gas,budget);
+ document.getElementById('budgetText').textContent=money(budgetUsed)+' / '+money(budget);
+ document.getElementById('budgetBar').style.width=Math.min(100,(budgetUsed/budget)*100)+'%';
+
+ const now=new Date();
+ const antMovs=movs.filter(x=>x.tipo==='gasto' && (x.categoria==='Gasto hormiga' || x.concepto.toLowerCase().includes('hormiga')));
+ const antTotal=antMovs.reduce((a,x)=>a+x.monto,0);
+ document.getElementById('antTotal').textContent=money(antTotal);
+ document.getElementById('antCount').textContent=antMovs.length;
+ document.getElementById('antAvg').textContent=money(antMovs.length?antTotal/antMovs.length:0);
+ const month=now.getMonth(), year=now.getFullYear();
+ const monthMovs=movs.filter(x=>{
+   const d=x.fecha?x.fecha.split('/'):null;
+   return !d || d.length<3 || (Number(d[1])-1===month && Number(d[2])===year);
+ });
+ const ming=monthMovs.filter(x=>x.tipo==='ingreso').reduce((a,x)=>a+x.monto,0);
+ const mgas=monthMovs.filter(x=>x.tipo==='gasto').reduce((a,x)=>a+x.monto,0);
+ document.getElementById('monthLabel').textContent=now.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+ document.getElementById('movIng').textContent=money(ming);
+ document.getElementById('movGas').textContent=money(mgas);
+
+ const list=document.getElementById('movList');
+ if(!movs.length){list.innerHTML='<div class="empty">Aún no tienes movimientos.<br>Presiona + para registrar el primero. 💗</div>';return}
+ list.innerHTML=movs.map((x,i)=>`<div class="row">
+ <div class="left"><div class="ico">${x.tipo==='ingreso'?'💚':'💸'}</div><div><b>${esc(x.concepto)}</b><div class="muted">${esc(x.categoria)} · ${esc(x.cuenta||'Efectivo')} · ${x.fecha}${x.recurrente&&x.recurrente!=='no'?' · 🔁':''}</div>${x.nota?`<div class="muted">${esc(x.nota)}</div>`:''}</div></div>
+ <div style="text-align:right"><div class="amount" style="color:${x.tipo==='ingreso'?'#3a9b78':'#d14f78'}">${x.tipo==='ingreso'?'+':'-'}${money(x.monto)}</div><button onclick="deleteMovement(${i})" style="border:0;background:none;color:#aaa;font-size:10px">Eliminar</button></div></div>`).join('');
+}
+
+
+let fastValue='',fastCategory='Comida';
+function openFast(cat){
+ fastValue='';document.getElementById('fastAmount').textContent='$0';
+ document.querySelectorAll('.quickCat').forEach(b=>b.classList.toggle('active',b.dataset.cat=== (cat||'Comida')));
+ fastCategory=cat||'Comida';document.getElementById('fastModal').classList.add('show');
+}
+function closeFast(){document.getElementById('fastModal').classList.remove('show')}
+function fastCat(btn){
+ document.querySelectorAll('.quickCat').forEach(b=>b.classList.remove('active'));btn.classList.add('active');fastCategory=btn.dataset.cat;
+}
+function keyIn(k){
+ if(k==='.' && fastValue.includes('.')) return;
+ if(fastValue==='0' && k!=='.') fastValue='';
+ if(fastValue.length>9) return;
+ fastValue+=k;document.getElementById('fastAmount').textContent=money(Number(fastValue||0));
+}
+function keyBack(){fastValue=fastValue.slice(0,-1);document.getElementById('fastAmount').textContent=money(Number(fastValue||0))}
+function saveFast(){
+ const n=Number(fastValue);
+ if(!n||n<=0){alert('Agrega un monto válido.');return}
+ movs.unshift({tipo:'gasto',concepto:fastCategory,monto:n,categoria:fastCategory,cuenta:'Efectivo',fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota:''});
+ localStorage.setItem(key,JSON.stringify(movs));closeFast();render();
+}
+function quickExpense(category){
+ const amount=prompt('¿Cuánto gastaste en '+category+'?');
+ if(amount===null) return;
+ const n=Number(amount.replace(',','.'));
+ if(!n||n<=0){alert('Agrega un monto válido.');return}
+ const isAnt=category==='Gasto hormiga';
+ movs.unshift({tipo:'gasto',concepto:isAnt?'Gasto hormiga':category,monto:n,categoria:isAnt?'Gasto hormiga':category,cuenta:'Efectivo',fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota:''});
+ localStorage.setItem(key,JSON.stringify(movs));render();renderDashboard();
+}
+function deleteMovement(i){
+ if(!confirm('¿Eliminar este movimiento?')) return;
+ movs.splice(i,1); localStorage.setItem(key,JSON.stringify(movs)); render();
+}
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+render();renderDebts();refreshAI();renderCalendar();renderDashboard();renderGoals();
+</script>
+</body>
+</html>
