@@ -109,9 +109,8 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
   <div class="row"><div class="left"><div class="ico">🏠</div><div><b>Préstamo personal</b><div class="muted">Pago mensual</div></div></div><div><div class="amount">$3,500</div><div class="muted">27 Jul</div></div></div>
   <div class="row"><div class="left"><div class="ico">🌐</div><div><b>Internet</b><div class="muted">Servicio</div></div></div><div><div class="amount">$980</div><div class="muted">30 Jul</div></div></div>
  </div>
- <div class="card"><div class="title"><b>Mis metas</b><span class="muted">Ver todas</span></div>
-  <div class="row"><div><b>🚨 Fondo de emergencia</b><div class="progress" style="width:190px;margin-top:7px"><div class="bar" style="width:72%"></div></div></div><b>72%</b></div>
-  <div class="row"><div><b>✈️ Viaje a Cancún</b><div class="progress" style="width:190px;margin-top:7px"><div class="bar" style="width:40%"></div></div></div><b>40%</b></div>
+ <div class="card"><div class="title"><b>Mis metas</b><button class="linkbtn" onclick="show('metas')">Ver todas</button></div>
+  <div id="homeGoals"><div class="muted">Aún no tienes metas. Crea la primera en Mis metas. 💗</div></div>
  </div>
  
 <div class="card">
@@ -310,6 +309,20 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 <div id="fastOtherWrap" style="display:none;margin-top:10px">
  <label style="display:block;font-size:10px;color:#666;margin-bottom:4px">¿Qué fue?</label>
  <input id="fastOther" placeholder="Ej. regalo, estacionamiento, medicamento..." style="width:100%;box-sizing:border-box;border:1px solid #eadde5;border-radius:12px;padding:11px;background:#fff;font-size:12px">
+</div>
+<div style="margin-top:10px">
+ <label style="display:block;font-size:10px;color:#666;margin-bottom:4px">Tipo de pago</label>
+ <select id="fastPaymentType" onchange="updateFastPaymentAccounts()" style="width:100%;box-sizing:border-box;border:1px solid #eadde5;border-radius:12px;padding:11px;background:#fff;font-size:12px">
+  <option value="Efectivo">💵 Efectivo</option>
+  <option value="Transferencia">🏦 Transferencia</option>
+  <option value="Tarjeta de débito">💳 Tarjeta de débito</option>
+  <option value="Tarjeta de crédito">💳 Tarjeta de crédito</option>
+  <option value="Descuento de nómina">🧾 Descuento de nómina</option>
+ </select>
+</div>
+<div id="fastPaymentAccountWrap" style="display:none;margin-top:8px">
+ <label style="display:block;font-size:10px;color:#666;margin-bottom:4px">¿Qué tarjeta?</label>
+ <select id="fastPaymentAccount" style="width:100%;box-sizing:border-box;border:1px solid #eadde5;border-radius:12px;padding:11px;background:#fff;font-size:12px"></select>
 </div>
 <div class="keypad">
  <button class="key" onclick="keyIn('1')">1</button><button class="key" onclick="keyIn('2')">2</button><button class="key" onclick="keyIn('3')">3</button>
@@ -603,6 +616,7 @@ function saveGoal(){
  ['goalName','goalTarget'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('goalSaved').value='0';
  editingGoalIndex=-1;
+ renderHomeGoals();
  renderGoals();
 }
 function openGoalContribution(i){
@@ -614,6 +628,16 @@ function openGoalContribution(i){
  localStorage.setItem(goalKey,JSON.stringify(goals));
  renderGoals();
 }
+function renderHomeGoals(){
+ const el=document.getElementById('homeGoals');
+ if(!el)return;
+ if(!goals.length){el.innerHTML='<div class="muted">Aún no tienes metas. Crea la primera en Mis metas. 💗</div>';return;}
+ el.innerHTML=goals.slice(0,2).map(g=>{
+  const pct=g.target?Math.min(100,(Number(g.saved||0)/Number(g.target))*100):0;
+  return `<div class="row"><div style="min-width:0;flex:1"><b>${esc(g.name)}</b><div class="progress" style="width:100%;max-width:190px;margin-top:7px"><div class="bar" style="width:${pct}%"></div></div></div><b>${pct.toFixed(0)}%</b></div>`;
+ }).join('');
+}
+
 function renderGoals(){
  const el=document.getElementById('goalList');
  if(!goals.length){
@@ -788,6 +812,8 @@ function openFast(cat){
  document.querySelectorAll('.quickCat').forEach(b=>b.classList.toggle('active',b.dataset.cat=== (cat||'Comida')));
  fastCategory=cat||'Comida';
  document.getElementById('fastOtherWrap').style.display=fastCategory==='Otros'?'block':'none';
+ document.getElementById('fastPaymentType').value='Efectivo';
+ updateFastPaymentAccounts();
  document.getElementById('fastModal').classList.add('show');
 }
 function closeFast(){document.getElementById('fastModal').classList.remove('show')}
@@ -803,6 +829,16 @@ function keyIn(k){
  fastValue+=k;document.getElementById('fastAmount').textContent=money(Number(fastValue||0));
 }
 function keyBack(){fastValue=fastValue.slice(0,-1);document.getElementById('fastAmount').textContent=money(Number(fastValue||0))}
+function updateFastPaymentAccounts(){
+ const type=document.getElementById('fastPaymentType')?.value;
+ const wrap=document.getElementById('fastPaymentAccountWrap');
+ const sel=document.getElementById('fastPaymentAccount');
+ if(!wrap||!sel)return;
+ if(type!=='Tarjeta de crédito'){wrap.style.display='none';return}
+ const cards=(typeof debts!=='undefined'?debts:[]).filter(d=>String(d.type||'').toLowerCase().includes('tarjeta'));
+ sel.innerHTML=cards.length?cards.map((d,i)=>`<option value="${i}">${esc(d.name)}</option>`).join(''):'<option value="">No hay tarjetas registradas</option>';
+ wrap.style.display='block';
+}
 function saveFast(){
  const n=Number(fastValue);
  if(!n||n<=0){alert('Agrega un monto válido.');return}
@@ -812,7 +848,14 @@ function saveFast(){
   if(!concepto){alert('Escribe qué fue ese gasto.');document.getElementById('fastOther').focus();return}
   nota='Categoría: Otros';
  }
- movs.unshift({tipo:'gasto',concepto,monto:n,categoria:fastCategory,cuenta:'Efectivo',fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota});
+ const paymentType=document.getElementById('fastPaymentType')?.value||'Efectivo';
+ let cuenta=paymentType;
+ if(paymentType==='Tarjeta de crédito'){
+  const sel=document.getElementById('fastPaymentAccount');
+  const idx=Number(sel?.value);
+  if(!Number.isNaN(idx)&&typeof debts!=='undefined'&&debts[idx]) cuenta=debts[idx].name;
+ }
+ movs.unshift({tipo:'gasto',concepto,monto:n,categoria:fastCategory,cuenta,fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota,paymentType});
  localStorage.setItem(key,JSON.stringify(movs));closeFast();render();
 }
 function quickExpense(category){
@@ -829,7 +872,7 @@ function deleteMovement(i){
  movs.splice(i,1); localStorage.setItem(key,JSON.stringify(movs)); render();
 }
 function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-updateGreeting();render();renderDebts();renderAccounts();refreshAI();renderCalendar();renderDashboard();renderGoals();renderBudgets();
+updateGreeting();render();renderDebts();renderAccounts();refreshAI();renderCalendar();renderDashboard();renderHomeGoals();renderGoals();renderBudgets();
 </script>
 </body>
 </html>
