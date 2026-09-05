@@ -335,6 +335,19 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 <button class="primary" onclick="saveEvent()">Guardar en calendario</button>
 </div></div></div>
 
+<div class="modal" id="markPaidModal"><div class="sheet">
+<button class="close" onclick="closeMarkPaidModal()">×</button>
+<h3>✓ Marcar como pagado</h3>
+<div class="form">
+<label>Pago</label><input id="paidEventName" disabled>
+<label>Monto pagado</label><input id="paidAmount" type="number" step="0.01" placeholder="0.00">
+<label>Fecha en que lo pagaste</label><input id="paidDate" type="date">
+<label>¿Quién pagó?</label><select id="paidPayer" onchange="togglePaidShare()"><option value="yo">🙋‍♀️ Yo</option><option value="esposo">👨 Esposo</option><option value="compartido">🤝 Compartido</option></select>
+<div id="paidShareWrap" style="display:none"><label>¿Cuánto pagué yo?</label><input id="paidMyShare" type="number" step="0.01" placeholder="0.00"></div>
+<div id="paidAccountWrap"><label>¿De qué cuenta salió?</label><select id="paidAccount"><option>Efectivo</option><option>BBVA débito</option><option>Otra cuenta</option></select></div>
+<button class="primary" onclick="savePaidEvent()">Registrar pago</button>
+</div></div></div>
+
 <div class="modal" id="fastModal"><div class="sheet">
 <button class="close" onclick="closeFast()">×</button>
 <h3>⚡ Gasto rápido</h3>
@@ -857,6 +870,7 @@ const eventKey='patsy_finance_events';
 let events=JSON.parse(localStorage.getItem(eventKey)||'[]');
 let calDate=new Date();
 let editingEventIndex=-1;
+let payingEventIndex=-1;
 function openEventModal(i=-1){
  editingEventIndex=i;
  const e=i>=0?events[i]:{};
@@ -877,8 +891,9 @@ function saveEvent(){
  const date=document.getElementById('eventDate').value;
  const frequency=document.getElementById('eventFrequency').value||'unico';
  if(!date||amount<=0){alert('Agrega fecha y monto.');return}
- const item={name,amount,date,type:document.getElementById('eventType').value,frequency,payer:document.getElementById('eventPayer').value,repeat:frequency!=='unico'};
- if(editingEventIndex>=0)events[editingEventIndex]={...events[editingEventIndex],...item};
+ const old=editingEventIndex>=0?events[editingEventIndex]:{};
+ const item={name,amount,date,type:document.getElementById('eventType').value,frequency,payer:document.getElementById('eventPayer').value,repeat:frequency!=='unico',paid:old.paid||[]};
+ if(editingEventIndex>=0)events[editingEventIndex]={...old,...item};
  else events.push({id:Date.now(),...item});
  localStorage.setItem(eventKey,JSON.stringify(events));closeEventModal();renderCalendar();renderHomeUpcoming();
 }
@@ -894,14 +909,75 @@ function changeMonth(n){calDate.setMonth(calDate.getMonth()+n);renderCalendar()}
 function addMonthsSafe(d,n){
  const x=new Date(d); const day=x.getDate(); x.setDate(1); x.setMonth(x.getMonth()+n); const last=new Date(x.getFullYear(),x.getMonth()+1,0).getDate(); x.setDate(Math.min(day,last)); return x;
 }
+function frequencyStep(freq){return {mensual:1,bimestral:2,trimestral:3,semestral:6,anual:12}[freq]||1}
 function nextOccurrenceForDay(day,frequency='mensual',baseDate=null){
  const now=new Date(); now.setHours(0,0,0,0);
  const base=baseDate?new Date(baseDate+'T12:00:00'):new Date(now.getFullYear(),now.getMonth(),Math.min(Number(day)||1,31),12);
  if(frequency==='unico') return base;
  let d=new Date(base);
- const step={mensual:1,bimestral:2,trimestral:3,semestral:6,anual:12}[frequency]||1;
+ const step=frequencyStep(frequency);
  while(d<new Date(now.getFullYear(),now.getMonth(),now.getDate(),12)) d=addMonthsSafe(d,step);
  return d;
+}
+function occurrenceKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function isEventOccurrencePaid(e,d){
+ const key=typeof d==='string'?d:occurrenceKey(d);
+ return (e.paid||[]).some(p=>p.occurrenceDate===key);
+}
+function nextOccurrenceForEvent(e){
+ const freq=e.frequency||((e.repeat)?'mensual':'unico');
+ let d=nextOccurrenceForDay(Number(e.date.slice(8,10)),freq,e.date);
+ if(freq==='unico') return isEventOccurrencePaid(e,d)?null:d;
+ let guard=0;
+ while(isEventOccurrencePaid(e,d)&&guard<100){d=addMonthsSafe(d,frequencyStep(freq));guard++}
+ return d;
+}
+function openMarkPaidModal(i){
+ const e=events[i]; if(!e)return;
+ const occurrence=nextOccurrenceForEvent(e); if(!occurrence){alert('Este compromiso ya está pagado.');return}
+ payingEventIndex=i;
+ document.getElementById('paidEventName').value=e.name||'Compromiso';
+ document.getElementById('paidAmount').value=Number(e.amount||0);
+ document.getElementById('paidDate').value=new Date().toISOString().slice(0,10);
+ document.getElementById('paidPayer').value=e.payer==='esposo'?'esposo':e.payer==='compartido'?'compartido':'yo';
+ document.getElementById('paidMyShare').value=e.payer==='compartido'?Math.min(Number(e.amount||0),Number(e.amount||0)):'';
+ document.getElementById('paidAccount').value='Efectivo';
+ togglePaidShare();
+ document.getElementById('markPaidModal').classList.add('show');
+}
+function closeMarkPaidModal(){document.getElementById('markPaidModal').classList.remove('show');payingEventIndex=-1}
+function togglePaidShare(){
+ const p=document.getElementById('paidPayer')?.value;
+ const wrap=document.getElementById('paidShareWrap');
+ const acc=document.getElementById('paidAccountWrap');
+ if(wrap)wrap.style.display=p==='compartido'?'block':'none';
+ if(acc)acc.style.display=p==='esposo'?'none':'block';
+}
+function savePaidEvent(){
+ const i=payingEventIndex, e=events[i]; if(!e)return;
+ const amount=Number(document.getElementById('paidAmount').value||0);
+ const paidDate=document.getElementById('paidDate').value||new Date().toISOString().slice(0,10);
+ const payer=document.getElementById('paidPayer').value||'yo';
+ let myShare=amount;
+ if(payer==='esposo')myShare=0;
+ if(payer==='compartido'){
+   myShare=Number(document.getElementById('paidMyShare').value||0);
+   if(myShare<0||myShare>amount){alert('La parte que pagas tú debe estar entre $0 y el total.');return}
+ }
+ if(amount<=0){alert('Agrega un monto válido.');return}
+ const occurrence=nextOccurrenceForEvent(e); if(!occurrence){alert('Este compromiso ya está pagado.');return}
+ const occurrenceDate=occurrenceKey(occurrence);
+ e.paid=e.paid||[];
+ if(e.paid.some(p=>p.occurrenceDate===occurrenceDate)){alert('Este periodo ya está marcado como pagado.');return}
+ const payment={id:Date.now(),occurrenceDate,paidDate,amount,payer,myShare,account:payer==='esposo'?'':document.getElementById('paidAccount').value||'Efectivo'};
+ e.paid.push(payment);
+ // Only the portion actually paid by Patsy becomes a personal movement.
+ if(e.type==='Pago' && myShare>0){
+   movs.unshift({id:Date.now()+1,tipo:'gasto',concepto:e.name,monto:amount,montoPersonal:myShare,categoria:'Servicios',cuenta:payment.account,fecha:new Date(paidDate+'T12:00:00').toLocaleDateString('es-MX'),recurrente:e.frequency==='unico'?'no':e.frequency,nota:'Pago registrado desde Calendario',payer});
+   localStorage.setItem(key,JSON.stringify(movs));
+ }
+ localStorage.setItem(eventKey,JSON.stringify(events));
+ closeMarkPaidModal(); render(); renderDashboard(); refreshAI(); renderCalendar(); renderHomeUpcoming();
 }
 function eventOccursOnDay(e,y,m,d){
  const freq=e.frequency||((e.repeat)?'mensual':'unico');
@@ -909,7 +985,7 @@ function eventOccursOnDay(e,y,m,d){
  if(freq==='unico') return base.getFullYear()===y&&base.getMonth()===m&&base.getDate()===d;
  if(base.getDate()!==d)return false;
  const months=(y-base.getFullYear())*12+(m-base.getMonth());
- const step={mensual:1,bimestral:2,trimestral:3,semestral:6,anual:12}[freq]||1;
+ const step=frequencyStep(freq);
  return months>=0&&months%step===0;
 }
 function formatShortDate(d){return d.toLocaleDateString('es-MX',{day:'numeric',month:'short'}).replace('.','')}
@@ -922,9 +998,8 @@ function getUpcomingItems(){
    items.push({kind:'debt',index:i,name:d.name,amount:Number(d.min||0),date,type:'Pago',icon:d.type==='Tarjeta de crédito'?'💳':'🏦',payer:'yo'});
  });
  events.forEach((e,i)=>{
-   const frequency=e.frequency||((e.repeat)?'mensual':'unico');
-   const date=nextOccurrenceForDay(Number(e.date.slice(8,10)),frequency,e.date);
-   if(date>=now)items.push({kind:'event',index:i,name:e.name,amount:Number(e.amount||0),date,type:e.type,icon:e.type==='Ingreso esperado'?'💚':'📅',payer:e.payer||'yo',frequency});
+   const date=nextOccurrenceForEvent(e);
+   if(date&&date>=now)items.push({kind:'event',index:i,name:e.name,amount:Number(e.amount||0),date,type:e.type,icon:e.type==='Ingreso esperado'?'💚':'📅',payer:e.payer||'yo',frequency:e.frequency||((e.repeat)?'mensual':'unico')});
  });
  return items.filter(x=>x.date>=now).sort((a,b)=>a.date-b.date).slice(0,8);
 }
@@ -933,9 +1008,10 @@ function renderHomeUpcoming(){
  const items=getUpcomingItems().filter(x=>x.type==='Pago').slice(0,5);
  if(!items.length){el.innerHTML='<div class="empty">No tienes pagos próximos registrados. Puedes agregarlos en Calendario o editar tus cuentas.</div>';return;}
  el.innerHTML=items.map(x=>{
-   const click=x.kind==='debt'?`onclick="openDebtModal(${x.index})"`:`onclick="openEventModal(${x.index})"`;
+   const edit=x.kind==='debt'?`openDebtModal(${x.index})`:`openEventModal(${x.index})`;
    const sub=x.kind==='debt'?'Pago mensual':'Compromiso';
-   return `<button ${click} style="width:100%;text-align:left;border:0;border-bottom:1px solid #f0e5eb;background:#fff;padding:10px 0;display:flex;justify-content:space-between;gap:8px;cursor:pointer"><div class="left"><div class="ico">${x.icon}</div><div><b>${esc(x.name)}</b><div class="muted">${sub} · ${formatShortDate(x.date)}</div></div></div><div style="text-align:right"><div class="amount">${money(x.amount)}</div><div class="muted">Editar ›</div></div></button>`;
+   const paidBtn=x.kind==='event'?`<button onclick="event.stopPropagation();openMarkPaidModal(${x.index})" style="border:0;background:#f4e9ee;color:#102d63;border-radius:10px;padding:5px 7px;font-size:10px;font-weight:700">✓ Marcar pagado</button>`:'';
+   return `<div style="border-bottom:1px solid #f0e5eb;padding:10px 0;display:flex;justify-content:space-between;gap:8px"><div class="left" style="flex:1"><div class="ico">${x.icon}</div><div><b>${esc(x.name)}</b><div class="muted">${sub} · ${formatShortDate(x.date)}</div>${x.kind==='event'&&x.payer==='esposo'?'<div class="muted">Pagado por esposo · no afecta tu saldo</div>':''}</div></div><div style="text-align:right"><div class="amount">${money(x.amount)}</div><div style="display:flex;gap:4px;justify-content:flex-end;align-items:center"><button onclick="${edit}" style="border:0;background:none;color:#102d63;font-size:10px;padding:4px">✏️</button>${paidBtn}</div></div></div>`;
  }).join('');
 }
 function renderCalendar(){
@@ -945,14 +1021,17 @@ function renderCalendar(){
  const heads=['D','L','M','M','J','V','S'];let out=heads.map(x=>`<div class="dayHead">${x}</div>`).join('');
  for(let i=0;i<first;i++)out+='<div></div>';
  for(let d=1;d<=days;d++){
-   const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
    const ev=events.map((e,i)=>({...e,i})).filter(e=>eventOccursOnDay(e,y,m,d));
    const today=new Date();const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
-   out+=`<div class="day ${isToday?'today':''} ${ev.length?'hasPay':''}"><b>${d}</b>${ev.slice(0,2).map(e=>`<div class="payDot" onclick="openEventModal(${e.i})" style="cursor:pointer">${e.type==='Ingreso esperado'?'↑':'↓'} ${money(e.amount)}</div>`).join('')}</div>`;
+   out+=`<div class="day ${isToday?'today':''} ${ev.length?'hasPay':''}"><b>${d}</b>${ev.slice(0,2).map(e=>`<div class="payDot" onclick="openEventModal(${e.i})" style="cursor:pointer">${isEventOccurrencePaid(e,`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`)?'✓':'↓'} ${money(e.amount)}</div>`).join('')}</div>`;
  }
  document.getElementById('calendarGrid').innerHTML=out;
  const upcoming=getUpcomingItems();
- document.getElementById('eventList').innerHTML=upcoming.length?upcoming.map(e=>`<div class="event"><div class="left"><div class="eventDate"><b>${e.date.getDate()}</b><small>${e.date.toLocaleDateString('es-MX',{month:'short'}).toUpperCase()}</small></div><div><b>${e.icon} ${esc(e.name)}</b><div class="muted">${esc(e.type)}${(e.frequency&&e.frequency!=='unico')||e.repeat?' · 🔁 '+({mensual:'mensual',bimestral:'cada 2 meses',trimestral:'cada 3 meses',semestral:'cada 6 meses',anual:'anual'}[e.frequency||'mensual']||'recurrente'):''}${e.kind==='debt'?' · editar en Cuentas':''}</div></div></div><div style="text-align:right"><div style="font-weight:700;color:${e.type==='Ingreso esperado'?'#3a9b78':'#d14f78'}">${e.type==='Ingreso esperado'?'+':'-'}${money(e.amount)}</div><button onclick="${e.kind==='debt'?`openDebtModal(${e.index})`:`openEventModal(${e.index})`}" style="border:0;background:none;color:#102d63;font-size:10px;padding:4px">✏️ Editar</button>${e.kind==='event'?`<button onclick="deleteEvent(${e.index})" style="border:0;background:none;color:#aaa;font-size:10px;padding:4px">Eliminar</button>`:''}</div></div>`).join(''):'<div class="empty">No hay compromisos próximos registrados.</div>';
+ document.getElementById('eventList').innerHTML=upcoming.length?upcoming.map(e=>{
+   const edit=e.kind==='debt'?`openDebtModal(${e.index})`:`openEventModal(${e.index})`;
+   const paid=e.kind==='event'?`<button onclick="openMarkPaidModal(${e.index})" style="border:0;background:#f4e9ee;color:#102d63;border-radius:10px;padding:5px 7px;font-size:10px;font-weight:700">✓ Marcar pagado</button>`:'';
+   return `<div class="event"><div class="left"><div class="eventDate"><b>${e.date.getDate()}</b><small>${e.date.toLocaleDateString('es-MX',{month:'short'}).toUpperCase()}</small></div><div><b>${e.icon} ${esc(e.name)}</b><div class="muted">${esc(e.type)}${(e.frequency&&e.frequency!=='unico')||e.repeat?' · 🔁 '+({mensual:'mensual',bimestral:'cada 2 meses',trimestral:'cada 3 meses',semestral:'cada 6 meses',anual:'anual'}[e.frequency||'mensual']||'recurrente'):''}${e.kind==='debt'?' · editar en Cuentas':''}${e.kind==='event'&&e.payer==='esposo'?' · no afecta tu saldo':''}</div></div></div><div style="text-align:right"><div style="font-weight:700;color:${e.type==='Ingreso esperado'?'#3a9b78':'#d14f78'}">${e.type==='Ingreso esperado'?'+':'-'}${money(e.amount)}</div><div style="display:flex;gap:4px;justify-content:flex-end;align-items:center"><button onclick="${edit}" style="border:0;background:none;color:#102d63;font-size:10px;padding:4px">✏️</button>${e.kind==='event'?`<button onclick="deleteEvent(${e.index})" style="border:0;background:none;color:#aaa;font-size:10px;padding:4px">Eliminar</button>`:''}${paid}</div></div></div>`;
+ }).join(''):'<div class="empty">No hay compromisos próximos registrados.</div>';
  const nextOut=upcoming.filter(e=>e.type==='Pago').reduce((a,e)=>a+e.amount,0);
  document.getElementById('cashWarning').textContent=nextOut?`Tienes ${money(nextOut)} en pagos próximos registrados. Apartar ese dinero primero te ayudará a no depender de la tarjeta.`:'Registra tus pagos próximos para saber cuánto necesitas apartar.';
  renderHomeUpcoming();
