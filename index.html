@@ -105,10 +105,8 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
  <button class="primary" onclick="openFast()">＋ Registrar otro gasto</button>
 </div>
 
- <div class="card"><div class="title"><b>Próximos pagos</b><span class="muted">Ver calendario</span></div>
-  <div class="row"><div class="left"><div class="ico">💳</div><div><b>Tarjeta BBVA</b><div class="muted">Pago próximo</div></div></div><div><div class="amount">$5,550</div><div class="muted">25 Jul</div></div></div>
-  <div class="row"><div class="left"><div class="ico">🏠</div><div><b>Préstamo personal</b><div class="muted">Pago mensual</div></div></div><div><div class="amount">$3,500</div><div class="muted">27 Jul</div></div></div>
-  <div class="row"><div class="left"><div class="ico">🌐</div><div><b>Internet</b><div class="muted">Servicio</div></div></div><div><div class="amount">$980</div><div class="muted">30 Jul</div></div></div>
+ <div class="card"><div class="title"><b>Próximos pagos</b><button class="linkbtn" onclick="show('calendario')">Ver calendario</button></div>
+  <div id="homeUpcomingPayments"><div class="empty">Cargando pagos…</div></div>
  </div>
  <div class="card"><div class="title"><b>Mis metas</b><button class="linkbtn" onclick="show('metas')">Ver todas</button></div>
   <div id="homeGoals"><div class="muted">Aún no tienes metas. Crea la primera en Mis metas. 💗</div></div>
@@ -331,7 +329,9 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 <label>Monto</label><input id="eventAmount" type="number" step="0.01" placeholder="0.00">
 <label>Fecha</label><input id="eventDate" type="date">
 <label>Tipo</label><select id="eventType"><option>Pago</option><option>Ingreso esperado</option></select>
-<label class="toggle"><input id="eventRepeat" type="checkbox"> Repetir cada mes</label>
+<label>Frecuencia</label><select id="eventFrequency"><option value="unico">Una sola vez</option><option value="mensual">Mensual</option><option value="bimestral">Cada 2 meses</option><option value="trimestral">Cada 3 meses</option><option value="semestral">Cada 6 meses</option><option value="anual">Anual</option></select>
+<label>¿Quién lo paga?</label><select id="eventPayer"><option value="yo">🙋‍♀️ Yo</option><option value="esposo">👨 Esposo</option><option value="compartido">🤝 Compartido</option><option value="variable">🔄 Variable</option></select>
+<label class="toggle"><input id="eventRepeat" type="checkbox" style="display:none"> </label>
 <button class="primary" onclick="saveEvent()">Guardar en calendario</button>
 </div></div></div>
 
@@ -420,6 +420,8 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 <label>Categoría</label><select id="categoria"><option>Comida</option><option>Gasolina</option><option>Hogar</option><option>Familia</option><option>Salud</option><option>Sonograph</option><option>Compras</option><option>Servicios</option><option>Educación</option><option>Otros</option></select>
 <label>Cuenta</label><select id="cuenta"><option>Efectivo</option><option>BBVA</option><option>Nu</option><option>Otra cuenta</option></select>
 <label>Fecha</label><input id="fecha" type="date">
+<label>¿Quién pagó?</label><select id="movementPayer"><option value="yo">🙋‍♀️ Yo</option><option value="esposo">👨 Esposo</option><option value="compartido">🤝 Compartido</option></select>
+<div id="movementShareWrap" style="display:none"><label>¿Cuánto pagué yo?</label><input id="movementMyShare" type="number" step="0.01" placeholder="0.00"></div>
 <label>¿Es recurrente?</label><select id="recurrente"><option value="no">No</option><option value="mensual">Sí, mensual</option></select>
 <label>Nota (opcional)</label><input id="nota" placeholder="Algún detalle para recordar">
 <button class="primary" onclick="saveMovement()">Guardar movimiento</button>
@@ -464,22 +466,21 @@ function toggleMovementForm(){
  }
 }
 function saveMovement(){
- const type=document.getElementById('movementType')?.value||'gasto';
- const concept=document.getElementById('concept')?.value.trim();
- const amount=Number(document.getElementById('amount')?.value||0);
- const category=document.getElementById('category')?.value||'Otros';
- const account=document.getElementById('account')?.value||'Efectivo';
- const date=document.getElementById('date')?.value||new Date().toISOString().slice(0,10);
- const recurring=document.getElementById('recurrent')?.value||'No';
- const note=document.getElementById('note')?.value.trim()||'';
+ const type=document.getElementById('tipo')?.value||'gasto';
+ const concept=document.getElementById('concepto')?.value.trim();
+ const amount=Number(document.getElementById('monto')?.value||0);
+ const category=document.getElementById('categoria')?.value||'Otros';
+ const account=document.getElementById('cuenta')?.value||'Efectivo';
+ const date=document.getElementById('fecha')?.value||new Date().toISOString().slice(0,10);
+ const recurring=document.getElementById('recurrente')?.value||'no';
+ const note=document.getElementById('nota')?.value.trim()||'';
+ const payer=document.getElementById('movementPayer')?.value||'yo';
+ let myShare=amount;
+ if(type==='gasto' && payer==='esposo')myShare=0;
+ if(type==='gasto' && payer==='compartido'){myShare=Number(document.getElementById('movementMyShare')?.value||0); if(myShare<0||myShare>amount){alert('La parte que pagas tú debe estar entre $0 y el total.');return}}
  if(!concept||!amount||amount<=0){alert('Completa concepto y monto.');return}
- const mov={id:Date.now(),tipo:type,concepto:concept,monto:amount,categoria:type==='ingreso'?'Ingreso':category,cuenta:account,fecha:date,recurrente:recurring,nota:note};
- movs.unshift(mov);
- localStorage.setItem(key,JSON.stringify(movs));
- closeModal();
- render();
- if(typeof renderDashboard==='function')renderDashboard();
- if(typeof refreshAI==='function')refreshAI();
+ const mov={id:Date.now(),tipo:type,concepto:concept,monto:amount,montoPersonal:type==='gasto'?myShare:amount,categoria:type==='ingreso'?'Ingreso':category,cuenta:account,fecha:date,recurrente:recurring,nota:note,payer};
+ movs.unshift(mov); localStorage.setItem(key,JSON.stringify(movs)); closeModal(); render(); if(typeof renderDashboard==='function')renderDashboard(); if(typeof refreshAI==='function')refreshAI();
 }
 
 const debtKey='patsy_finance_debts';
@@ -830,8 +831,8 @@ function deleteGoal(i){
 }
 
 function renderDashboard(){
- const income=movs.filter(x=>x.tipo==='ingreso').reduce((a,x)=>a+x.monto,0);
- const expense=movs.filter(x=>x.tipo==='gasto').reduce((a,x)=>a+x.monto,0);
+ const income=movs.filter(x=>x.tipo==='ingreso' && (x.payer||'yo')!=='esposo').reduce((a,x)=>a+x.monto,0);
+ const expense=movs.filter(x=>x.tipo==='gasto').reduce((a,x)=>a+(x.montoPersonal!==undefined?Number(x.montoPersonal):((x.payer||'yo')==='esposo'?0:x.monto)),0);
  const debt=debts.reduce((a,d)=>a+d.balance,0);
  const paid=debts.reduce((a,d)=>a+(d.payments||[]).reduce((s,p)=>s+p.amount,0),0);
  const original=debt+paid;
@@ -855,21 +856,88 @@ function renderDashboard(){
 const eventKey='patsy_finance_events';
 let events=JSON.parse(localStorage.getItem(eventKey)||'[]');
 let calDate=new Date();
-function openEventModal(){
- document.getElementById('eventDate').value=new Date().toISOString().slice(0,10);
+let editingEventIndex=-1;
+function openEventModal(i=-1){
+ editingEventIndex=i;
+ const e=i>=0?events[i]:{};
+ document.querySelector('#eventModal h3').textContent=i>=0?'✏️ Editar compromiso':'📅 Nuevo compromiso';
+ document.getElementById('eventName').value=e.name||'';
+ document.getElementById('eventAmount').value=e.amount??'';
+ document.getElementById('eventDate').value=e.date||new Date().toISOString().slice(0,10);
+ document.getElementById('eventType').value=e.type||'Pago';
+ document.getElementById('eventFrequency').value=e.frequency||((e.repeat)?'mensual':'unico');
+ document.getElementById('eventPayer').value=e.payer||'yo';
+ document.getElementById('eventRepeat').checked=!!e.repeat;
  document.getElementById('eventModal').classList.add('show');
 }
-function closeEventModal(){document.getElementById('eventModal').classList.remove('show')}
+function closeEventModal(){document.getElementById('eventModal').classList.remove('show');editingEventIndex=-1}
 function saveEvent(){
  const name=document.getElementById('eventName').value.trim()||'Compromiso';
  const amount=Number(document.getElementById('eventAmount').value)||0;
  const date=document.getElementById('eventDate').value;
+ const frequency=document.getElementById('eventFrequency').value||'unico';
  if(!date||amount<=0){alert('Agrega fecha y monto.');return}
- events.push({name,amount,date,type:document.getElementById('eventType').value,repeat:document.getElementById('eventRepeat').checked});
- localStorage.setItem(eventKey,JSON.stringify(events));closeEventModal();
- document.getElementById('eventName').value='';document.getElementById('eventAmount').value='';renderCalendar();
+ const item={name,amount,date,type:document.getElementById('eventType').value,frequency,payer:document.getElementById('eventPayer').value,repeat:frequency!=='unico'};
+ if(editingEventIndex>=0)events[editingEventIndex]={...events[editingEventIndex],...item};
+ else events.push({id:Date.now(),...item});
+ localStorage.setItem(eventKey,JSON.stringify(events));closeEventModal();renderCalendar();renderHomeUpcoming();
+}
+function toggleMovementPayer(){
+ const p=document.getElementById('movementPayer')?.value;
+ const w=document.getElementById('movementShareWrap');
+ if(w)w.style.display=p==='compartido'?'block':'none';
+}
+function deleteEvent(i){
+ if(confirm('¿Eliminar este compromiso del calendario?')){events.splice(i,1);localStorage.setItem(eventKey,JSON.stringify(events));renderCalendar();renderHomeUpcoming();}
 }
 function changeMonth(n){calDate.setMonth(calDate.getMonth()+n);renderCalendar()}
+function addMonthsSafe(d,n){
+ const x=new Date(d); const day=x.getDate(); x.setDate(1); x.setMonth(x.getMonth()+n); const last=new Date(x.getFullYear(),x.getMonth()+1,0).getDate(); x.setDate(Math.min(day,last)); return x;
+}
+function nextOccurrenceForDay(day,frequency='mensual',baseDate=null){
+ const now=new Date(); now.setHours(0,0,0,0);
+ const base=baseDate?new Date(baseDate+'T12:00:00'):new Date(now.getFullYear(),now.getMonth(),Math.min(Number(day)||1,31),12);
+ if(frequency==='unico') return base;
+ let d=new Date(base);
+ const step={mensual:1,bimestral:2,trimestral:3,semestral:6,anual:12}[frequency]||1;
+ while(d<new Date(now.getFullYear(),now.getMonth(),now.getDate(),12)) d=addMonthsSafe(d,step);
+ return d;
+}
+function eventOccursOnDay(e,y,m,d){
+ const freq=e.frequency||((e.repeat)?'mensual':'unico');
+ const base=new Date(e.date+'T12:00:00');
+ if(freq==='unico') return base.getFullYear()===y&&base.getMonth()===m&&base.getDate()===d;
+ if(base.getDate()!==d)return false;
+ const months=(y-base.getFullYear())*12+(m-base.getMonth());
+ const step={mensual:1,bimestral:2,trimestral:3,semestral:6,anual:12}[freq]||1;
+ return months>=0&&months%step===0;
+}
+function formatShortDate(d){return d.toLocaleDateString('es-MX',{day:'numeric',month:'short'}).replace('.','')}
+function getUpcomingItems(){
+ const now=new Date(); now.setHours(0,0,0,0);
+ const items=[];
+ debts.forEach((d,i)=>{
+   const due=Number(d.due||0); if(!due)return;
+   const date=nextOccurrenceForDay(due,'mensual');
+   items.push({kind:'debt',index:i,name:d.name,amount:Number(d.min||0),date,type:'Pago',icon:d.type==='Tarjeta de crédito'?'💳':'🏦',payer:'yo'});
+ });
+ events.forEach((e,i)=>{
+   const frequency=e.frequency||((e.repeat)?'mensual':'unico');
+   const date=nextOccurrenceForDay(Number(e.date.slice(8,10)),frequency,e.date);
+   if(date>=now)items.push({kind:'event',index:i,name:e.name,amount:Number(e.amount||0),date,type:e.type,icon:e.type==='Ingreso esperado'?'💚':'📅',payer:e.payer||'yo',frequency});
+ });
+ return items.filter(x=>x.date>=now).sort((a,b)=>a.date-b.date).slice(0,8);
+}
+function renderHomeUpcoming(){
+ const el=document.getElementById('homeUpcomingPayments'); if(!el)return;
+ const items=getUpcomingItems().filter(x=>x.type==='Pago').slice(0,5);
+ if(!items.length){el.innerHTML='<div class="empty">No tienes pagos próximos registrados. Puedes agregarlos en Calendario o editar tus cuentas.</div>';return;}
+ el.innerHTML=items.map(x=>{
+   const click=x.kind==='debt'?`onclick="openDebtModal(${x.index})"`:`onclick="openEventModal(${x.index})"`;
+   const sub=x.kind==='debt'?'Pago mensual':'Compromiso';
+   return `<button ${click} style="width:100%;text-align:left;border:0;border-bottom:1px solid #f0e5eb;background:#fff;padding:10px 0;display:flex;justify-content:space-between;gap:8px;cursor:pointer"><div class="left"><div class="ico">${x.icon}</div><div><b>${esc(x.name)}</b><div class="muted">${sub} · ${formatShortDate(x.date)}</div></div></div><div style="text-align:right"><div class="amount">${money(x.amount)}</div><div class="muted">Editar ›</div></div></button>`;
+ }).join('');
+}
 function renderCalendar(){
  const y=calDate.getFullYear(),m=calDate.getMonth();
  document.getElementById('calMonth').textContent=calDate.toLocaleDateString('es-MX',{month:'long',year:'numeric'});
@@ -878,15 +946,16 @@ function renderCalendar(){
  for(let i=0;i<first;i++)out+='<div></div>';
  for(let d=1;d<=days;d++){
    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-   const ev=events.filter(e=>e.date===iso || (e.repeat && Number(e.date.slice(8,10))===d));
+   const ev=events.map((e,i)=>({...e,i})).filter(e=>eventOccursOnDay(e,y,m,d));
    const today=new Date();const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
-   out+=`<div class="day ${isToday?'today':''} ${ev.length?'hasPay':''}"><b>${d}</b>${ev.slice(0,2).map(e=>`<div class="payDot">${e.type==='Ingreso esperado'?'↑':'↓'} ${money(e.amount)}</div>`).join('')}</div>`;
+   out+=`<div class="day ${isToday?'today':''} ${ev.length?'hasPay':''}"><b>${d}</b>${ev.slice(0,2).map(e=>`<div class="payDot" onclick="openEventModal(${e.i})" style="cursor:pointer">${e.type==='Ingreso esperado'?'↑':'↓'} ${money(e.amount)}</div>`).join('')}</div>`;
  }
  document.getElementById('calendarGrid').innerHTML=out;
- const upcoming=events.map((e,i)=>({...e,i,dateObj:new Date(e.date+'T12:00:00')})).filter(e=>e.dateObj>=new Date(new Date().toDateString())).sort((a,b)=>a.dateObj-b.dateObj).slice(0,8);
- document.getElementById('eventList').innerHTML=upcoming.length?upcoming.map(e=>`<div class="event"><div class="left"><div class="eventDate"><b>${e.dateObj.getDate()}</b><small>${e.dateObj.toLocaleDateString('es-MX',{month:'short'}).toUpperCase()}</small></div><div><b>${esc(e.name)}</b><div class="muted">${esc(e.type)}${e.repeat?' · 🔁 mensual':''}</div></div></div><div style="font-weight:700;color:${e.type==='Ingreso esperado'?'#3a9b78':'#d14f78'}">${e.type==='Ingreso esperado'?'+':'-'}${money(e.amount)}</div></div>`).join(''):'<div class="empty">No hay compromisos próximos registrados.</div>';
- const nextOut=upcoming.filter(e=>e.type==='Pago').slice(0,5).reduce((a,e)=>a+e.amount,0);
+ const upcoming=getUpcomingItems();
+ document.getElementById('eventList').innerHTML=upcoming.length?upcoming.map(e=>`<div class="event"><div class="left"><div class="eventDate"><b>${e.date.getDate()}</b><small>${e.date.toLocaleDateString('es-MX',{month:'short'}).toUpperCase()}</small></div><div><b>${e.icon} ${esc(e.name)}</b><div class="muted">${esc(e.type)}${(e.frequency&&e.frequency!=='unico')||e.repeat?' · 🔁 '+({mensual:'mensual',bimestral:'cada 2 meses',trimestral:'cada 3 meses',semestral:'cada 6 meses',anual:'anual'}[e.frequency||'mensual']||'recurrente'):''}${e.kind==='debt'?' · editar en Cuentas':''}</div></div></div><div style="text-align:right"><div style="font-weight:700;color:${e.type==='Ingreso esperado'?'#3a9b78':'#d14f78'}">${e.type==='Ingreso esperado'?'+':'-'}${money(e.amount)}</div><button onclick="${e.kind==='debt'?`openDebtModal(${e.index})`:`openEventModal(${e.index})`}" style="border:0;background:none;color:#102d63;font-size:10px;padding:4px">✏️ Editar</button>${e.kind==='event'?`<button onclick="deleteEvent(${e.index})" style="border:0;background:none;color:#aaa;font-size:10px;padding:4px">Eliminar</button>`:''}</div></div>`).join(''):'<div class="empty">No hay compromisos próximos registrados.</div>';
+ const nextOut=upcoming.filter(e=>e.type==='Pago').reduce((a,e)=>a+e.amount,0);
  document.getElementById('cashWarning').textContent=nextOut?`Tienes ${money(nextOut)} en pagos próximos registrados. Apartar ese dinero primero te ayudará a no depender de la tarjeta.`:'Registra tus pagos próximos para saber cuánto necesitas apartar.';
+ renderHomeUpcoming();
 }
 
 function aiData(){
@@ -1048,7 +1117,8 @@ function deleteMovement(i){
  movs.splice(i,1); localStorage.setItem(key,JSON.stringify(movs)); render();
 }
 function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-updateGreeting();render();renderDebts();renderAccounts();refreshAI();renderCalendar();renderDashboard();renderHomeGoals();renderGoals();renderBudgets();
+document.getElementById('movementPayer')?.addEventListener('change',toggleMovementPayer);
+updateGreeting();render();renderDebts();renderAccounts();refreshAI();renderCalendar();renderDashboard();renderHomeGoals();renderGoals();renderBudgets();renderHomeUpcoming();
 </script>
 </body>
 </html>
