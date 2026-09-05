@@ -87,6 +87,7 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
   <button class="action" onclick="openFast()"><span>➕</span>Registrar</button>
   <button class="action" onclick="show('presupuestos')"><span>🥧</span>Presupuestos</button>
   <button class="action" onclick="show('cuentas')"><span>💳</span>Cuentas</button>
+  <button class="action" onclick="show('negocioEsposo')"><span>💼</span>Negocio esposo</button>
  </div>
  <div class="card"><div class="title"><b>Presupuesto rápido</b><span class="muted">Este mes</span></div>
   <div class="title"><b>Gastos variables</b><span id="budgetText">$0 / $8,000</span></div>
@@ -151,6 +152,26 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
  <div class="card"><div class="title"><b>💵 Efectivo / banco</b><span class="chip">Disponible</span></div><div class="balance" id="cuentaDisponible">$0.00</div></div>
 </section>
 
+
+
+<section id="negocioEsposo" class="section">
+ <div class="title"><h2>💼 Negocio</h2><button class="plus" onclick="openHusbandBusinessModal()">+</button></div>
+ <div class="card">
+  <div class="title"><b>Dinero bajo resguardo</b><span class="chip">Separado</span></div>
+  <div class="balance" id="husbandBalance">$0.00</div>
+  <div class="muted" style="font-size:11px;margin-top:4px">Este saldo no se suma a tus ingresos ni a tus gastos personales.</div>
+ </div>
+ <div class="grid">
+  <div class="mini"><small>📥 Recibido de él</small><strong id="husbandReceived">$0</strong></div>
+  <div class="mini"><small>📤 Para sus clientes</small><strong id="husbandClients">$0</strong></div>
+  <div class="mini"><small>↩️ Devuelto a él</small><strong id="husbandReturned">$0</strong></div>
+  <div class="mini"><small>💰 Pendiente de devolver</small><strong id="husbandOwed">$0</strong></div>
+ </div>
+ <div class="card">
+  <div class="title"><b>Movimientos del negocio</b><span class="muted">Separados de Patsy</span></div>
+  <div id="husbandBusinessList"></div>
+ </div>
+</section>
 
 <section id="deudas" class="section">
  <div class="title"><h2>Deudas y tarjetas</h2><button class="plus" onclick="openDebtModal()">+</button></div>
@@ -260,6 +281,37 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 
 
 
+
+<div class="modal" id="husbandBusinessModal"><div class="sheet">
+ <button class="close" onclick="closeHusbandBusinessModal()">×</button>
+ <h3>💼 Movimiento del negocio</h3>
+ <div class="form">
+  <label>Tipo de movimiento</label>
+  <select id="husbandMoveType" onchange="toggleHusbandMoveLabel()">
+   <option value="received">📥 Dinero recibido</option>
+   <option value="client">📤 Transferencia/pago para uno de sus clientes</option>
+   <option value="returned">↩️ Dinero que devuelves</option>
+  </select>
+  <label>Motivo</label>
+  <select id="husbandMovePurpose">
+   <option value="No me especificó">🤷 No me especificó</option>
+   <option value="Gasolina">⛽ Gasolina</option>
+   <option value="Material">🧰 Material</option>
+   <option value="Pago a cliente">👤 Pago a cliente</option>
+   <option value="Otro">📝 Otro</option>
+  </select>
+<label id="husbandMoveConceptLabel">Concepto</label>
+  <input id="husbandMoveConcept" placeholder="Ej. Dinero para guardar">
+  <label>Monto</label>
+  <input id="husbandMoveAmount" type="number" step="0.01" placeholder="0.00">
+  <label>Fecha</label>
+  <input id="husbandMoveDate" type="date">
+  <label>Nota (opcional)</label>
+  <input id="husbandMoveNote" placeholder="Ej. Cliente Juan, transferencia, efectivo...">
+  <button class="primary" onclick="saveHusbandBusinessMove()">Guardar movimiento</button>
+ </div>
+</div></div>
+
 <div class="modal" id="budgetModal"><div class="sheet">
 <button class="close" onclick="closeBudgetModal()">×</button>
 <h3 id="budgetModalTitle">💰 Nuevo presupuesto</h3>
@@ -295,7 +347,14 @@ main{padding:0 14px 92px}.hero{background:linear-gradient(135deg,#fff0f5,#ffe4ef
 <div class="modal" id="fastModal"><div class="sheet">
 <button class="close" onclick="closeFast()">×</button>
 <h3>⚡ Gasto rápido</h3>
-<div class="quickAmount" id="fastAmount">$0</div>
+<div class="quickAmount" id="fastAmount">$0</div><div style="display:flex;gap:8px;margin:10px 0">
+ <button id="fastTypeGasto" onclick="setFastType('gasto')" style="flex:1;border:1px solid #eadde5;border-radius:12px;padding:10px;background:#f4e9ee;color:#102d63;font-weight:700">💸 Gasto</button>
+ <button id="fastTypeIngreso" onclick="setFastType('ingreso')" style="flex:1;border:1px solid #eadde5;border-radius:12px;padding:10px;background:#fff;color:#102d63;font-weight:700">💚 Ingreso</button>
+</div>
+<div id="fastIncomeConceptWrap" style="display:none;margin-top:8px">
+ <label style="display:block;font-size:10px;color:#666;margin-bottom:4px">¿De qué fue el ingreso?</label>
+ <input id="fastIncomeConcept" placeholder="Ej. Comisión, sueldo, venta..." style="width:100%;box-sizing:border-box;border:1px solid #eadde5;border-radius:12px;padding:11px;background:#fff;font-size:12px">
+</div>
 <div class="quickCats">
  <button class="quickCat active" data-cat="Comida" onclick="fastCat(this)">🍔<br>Comida</button>
  <button class="quickCat" data-cat="Gasolina" onclick="fastCat(this)">⛽<br>Gasolina</button>
@@ -392,15 +451,44 @@ function updateGreeting(){
  else if(h>=12 && h<19) text='Buenas tardes, Patsy 🌸';
  document.getElementById('greeting').textContent=text;
 }
-function openModal(){document.getElementById('fecha').value=new Date().toISOString().slice(0,10);document.getElementById('modal').classList.add('show')}
+function openModal(){document.getElementById('movementType')&&(document.getElementById('movementType').value='gasto');document.getElementById('fecha').value=new Date().toISOString().slice(0,10);document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
+function toggleMovementForm(){
+ const type=document.getElementById('movementType')?.value||'gasto';
+ const concept=document.getElementById('concept');
+ const cat=document.getElementById('category');
+ const recurrent=document.getElementById('recurrent');
+ if(concept){
+  concept.placeholder=type==='ingreso'?'Ej. Comisión, sueldo, venta...':'Ej. gasolina, comida, comisión';
+ }
+ if(cat){
+  if(type==='ingreso'){
+   cat.dataset.oldValue=cat.value;
+   cat.innerHTML='<option>Ingreso</option>';
+   cat.value='Ingreso';
+  }else{
+   cat.innerHTML='<option>Comida</option><option>Gasolina</option><option>Super</option><option>Hormiga</option><option>Hogar</option><option>Familia</option><option>Compras</option><option>Otros</option>';
+   cat.value=cat.dataset.oldValue||'Comida';
+  }
+ }
+}
 function saveMovement(){
- const tipo=document.getElementById('tipo').value, concepto=document.getElementById('concepto').value.trim()||'Sin concepto', monto=Number(document.getElementById('monto').value), categoria=document.getElementById('categoria').value, cuenta=document.getElementById('cuenta').value, fecha=document.getElementById('fecha').value, recurrente=document.getElementById('recurrente').value, nota=document.getElementById('nota').value.trim();
- if(!monto||monto<=0){alert('Agrega un monto válido.');return}
- movs.unshift({tipo,concepto,monto,categoria,cuenta,fecha:fecha?new Date(fecha+'T12:00:00').toLocaleDateString('es-MX'):new Date().toLocaleDateString('es-MX'),recurrente,nota});
- localStorage.setItem(key,JSON.stringify(movs));closeModal();
- document.getElementById('concepto').value='';document.getElementById('monto').value='';document.getElementById('nota').value='';
- render();show('movimientos');
+ const type=document.getElementById('movementType')?.value||'gasto';
+ const concept=document.getElementById('concept')?.value.trim();
+ const amount=Number(document.getElementById('amount')?.value||0);
+ const category=document.getElementById('category')?.value||'Otros';
+ const account=document.getElementById('account')?.value||'Efectivo';
+ const date=document.getElementById('date')?.value||new Date().toISOString().slice(0,10);
+ const recurring=document.getElementById('recurrent')?.value||'No';
+ const note=document.getElementById('note')?.value.trim()||'';
+ if(!concept||!amount||amount<=0){alert('Completa concepto y monto.');return}
+ const mov={id:Date.now(),tipo:type,concepto:concept,monto:amount,categoria:type==='ingreso'?'Ingreso':category,cuenta:account,fecha:date,recurrente:recurring,nota:note};
+ movs.unshift(mov);
+ localStorage.setItem(key,JSON.stringify(movs));
+ closeModal();
+ render();
+ if(typeof renderDashboard==='function')renderDashboard();
+ if(typeof refreshAI==='function')refreshAI();
 }
 
 const debtKey='patsy_finance_debts';
@@ -527,6 +615,77 @@ function renderAccounts(){
 }
 
 
+
+
+const husbandBusinessKey='patsy_finance_husband_business';
+let husbandBusiness=JSON.parse(localStorage.getItem(husbandBusinessKey)||'[]');
+
+function openHusbandBusinessModal(){
+ document.getElementById('husbandMoveType').value='received';
+ document.getElementById('husbandMoveConcept').value='';
+ document.getElementById('husbandMoveAmount').value='';
+ document.getElementById('husbandMoveDate').value=new Date().toISOString().slice(0,10);
+ document.getElementById('husbandMoveNote').value='';
+ toggleHusbandMoveLabel();
+ document.getElementById('husbandBusinessModal').classList.add('show');
+}
+function closeHusbandBusinessModal(){document.getElementById('husbandBusinessModal').classList.remove('show')}
+function toggleHusbandMoveLabel(){
+ const t=document.getElementById('husbandMoveType').value;
+ const label=document.getElementById('husbandMoveConceptLabel');
+ const input=document.getElementById('husbandMoveConcept');
+ if(t==='received'){label.textContent='Concepto';input.placeholder='Ej. Dinero que me dejó para guardar'}
+ if(t==='client'){label.textContent='Cliente / concepto';input.placeholder='Ej. Cliente Juan, pedido 123'}
+ if(t==='returned'){label.textContent='Concepto';input.placeholder='Ej. Devolución de saldo a mi esposo'}
+}
+function saveHusbandBusinessMove(){
+ const type=document.getElementById('husbandMoveType').value;
+ const concept=document.getElementById('husbandMoveConcept').value.trim()||'Movimiento de negocio';
+ const amount=Number(document.getElementById('husbandMoveAmount').value||0);
+ const date=document.getElementById('husbandMoveDate').value||new Date().toISOString().slice(0,10);
+ const note=document.getElementById('husbandMoveNote').value.trim();
+ const purpose=document.getElementById('husbandMovePurpose')?.value||'No me especificó';
+ if(!amount||amount<=0){alert('Agrega un monto válido.');return}
+ husbandBusiness.unshift({id:Date.now(),type,concept,amount,date,note,purpose});
+ localStorage.setItem(husbandBusinessKey,JSON.stringify(husbandBusiness));
+ closeHusbandBusinessModal();
+ renderHusbandBusiness();
+}
+function deleteHusbandBusinessMove(i){
+ if(confirm('¿Eliminar este movimiento del negocio?')){
+  husbandBusiness.splice(i,1);
+  localStorage.setItem(husbandBusinessKey,JSON.stringify(husbandBusiness));
+  renderHusbandBusiness();
+ }
+}
+function renderHusbandBusiness(){
+ const received=husbandBusiness.filter(x=>x.type==='received').reduce((a,x)=>a+x.amount,0);
+ const clients=husbandBusiness.filter(x=>x.type==='client').reduce((a,x)=>a+x.amount,0);
+ const returned=husbandBusiness.filter(x=>x.type==='returned').reduce((a,x)=>a+x.amount,0);
+ const balance=received-clients-returned;
+ const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
+ set('husbandBalance',balance);set('husbandReceived',received);set('husbandClients',clients);set('husbandReturned',returned);set('husbandOwed',balance);
+ const list=document.getElementById('husbandBusinessList');
+ if(!list)return;
+ if(!husbandBusiness.length){list.innerHTML='<div class="empty">Aún no hay movimientos del negocio.</div>';return}
+ let running=0;
+ const chronological=[...husbandBusiness].reverse().map(x=>{running += x.type==='received'?x.amount:-x.amount; return {...x,running}}).reverse();
+ list.innerHTML=chronological.map((x)=>{
+  const originalIndex=husbandBusiness.findIndex(m=>m.id===x.id);
+  const sign=x.type==='received'?'+':'-';
+  const icon=x.type==='received'?'📥':x.type==='client'?'📤':'↩️';
+  const color=x.type==='received'?'#167a57':'#d84b72';
+  const purpose=x.type==='client'?` · ${esc(x.purpose||'No me especificó')}`:'';
+  return `<div style="padding:10px 0;border-bottom:1px solid #f0e5eb">
+   <div style="display:flex;justify-content:space-between;gap:8px">
+    <div><b>${icon} ${esc(x.concept)}</b><div class="muted" style="font-size:10px">${x.date}${purpose}${x.note?' · '+esc(x.note):''}</div></div>
+    <b style="color:${color}">${sign}${money(x.amount)}</b>
+   </div>
+   <div class="muted" style="font-size:10px;margin-top:3px">Saldo después: <b>${money(x.running)}</b></div>
+   <button onclick="deleteHusbandBusinessMove(${originalIndex})" style="border:0;background:none;color:#aaa;font-size:10px;padding:5px 0">Eliminar</button>
+  </div>`;
+ }).join('');
+}
 
 const budgetKey='patsy_finance_budgets';
 let budgets=JSON.parse(localStorage.getItem(budgetKey)||'null');
@@ -805,16 +964,35 @@ function render(){
 }
 
 
-let fastValue='',fastCategory='Comida';
+let fastValue='',fastCategory='Comida',fastType='gasto';
 function openFast(cat){
- fastValue='';document.getElementById('fastAmount').textContent='$0';
+ fastValue='';fastType='gasto';document.getElementById('fastAmount').textContent='$0';
  document.getElementById('fastOther').value='';
+ document.getElementById('fastIncomeConcept').value='';
  document.querySelectorAll('.quickCat').forEach(b=>b.classList.toggle('active',b.dataset.cat=== (cat||'Comida')));
  fastCategory=cat||'Comida';
  document.getElementById('fastOtherWrap').style.display=fastCategory==='Otros'?'block':'none';
+ document.getElementById('fastIncomeConceptWrap').style.display='none';
  document.getElementById('fastPaymentType').value='Efectivo';
  updateFastPaymentAccounts();
+ updateFastTypeButtons();
  document.getElementById('fastModal').classList.add('show');
+}
+function setFastType(type){
+ fastType=type;
+ const isIncome=type==='ingreso';
+ document.getElementById('fastIncomeConceptWrap').style.display=isIncome?'block':'none';
+ document.querySelector('.quickCats').style.display=isIncome?'none':'grid';
+ document.getElementById('fastOtherWrap').style.display=(!isIncome&&fastCategory==='Otros')?'block':'none';
+ document.getElementById('fastPaymentType').style.display=isIncome?'block':'block';
+ updateFastTypeButtons();
+ if(isIncome) setTimeout(()=>document.getElementById('fastIncomeConcept').focus(),50);
+}
+function updateFastTypeButtons(){
+ const g=document.getElementById('fastTypeGasto'), i=document.getElementById('fastTypeIngreso');
+ if(!g||!i)return;
+ g.style.background=fastType==='gasto'?'#f4e9ee':'#fff';
+ i.style.background=fastType==='ingreso'?'#e8f5ef':'#fff';
 }
 function closeFast(){document.getElementById('fastModal').classList.remove('show')}
 function fastCat(btn){
@@ -842,12 +1020,6 @@ function updateFastPaymentAccounts(){
 function saveFast(){
  const n=Number(fastValue);
  if(!n||n<=0){alert('Agrega un monto válido.');return}
- let concepto=fastCategory, nota='';
- if(fastCategory==='Otros'){
-  concepto=document.getElementById('fastOther').value.trim();
-  if(!concepto){alert('Escribe qué fue ese gasto.');document.getElementById('fastOther').focus();return}
-  nota='Categoría: Otros';
- }
  const paymentType=document.getElementById('fastPaymentType')?.value||'Efectivo';
  let cuenta=paymentType;
  if(paymentType==='Tarjeta de crédito'){
@@ -855,8 +1027,20 @@ function saveFast(){
   const idx=Number(sel?.value);
   if(!Number.isNaN(idx)&&typeof debts!=='undefined'&&debts[idx]) cuenta=debts[idx].name;
  }
- movs.unshift({tipo:'gasto',concepto,monto:n,categoria:fastCategory,cuenta,fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota,paymentType});
- localStorage.setItem(key,JSON.stringify(movs));closeFast();render();
+ if(fastType==='ingreso'){
+  const concepto=document.getElementById('fastIncomeConcept').value.trim();
+  if(!concepto){alert('Escribe de qué fue el ingreso.');document.getElementById('fastIncomeConcept').focus();return}
+  movs.unshift({tipo:'ingreso',concepto,monto:n,categoria:'Ingreso',cuenta,fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota:'',paymentType});
+ }else{
+  let concepto=fastCategory, nota='';
+  if(fastCategory==='Otros'){
+   concepto=document.getElementById('fastOther').value.trim();
+   if(!concepto){alert('Escribe qué fue ese gasto.');document.getElementById('fastOther').focus();return}
+   nota='Categoría: Otros';
+  }
+  movs.unshift({tipo:'gasto',concepto,monto:n,categoria:fastCategory,cuenta,fecha:new Date().toLocaleDateString('es-MX'),recurrente:'no',nota,paymentType});
+ }
+ localStorage.setItem(key,JSON.stringify(movs));closeFast();render();renderDashboard();
 }
 function quickExpense(category){
  const amount=prompt('¿Cuánto gastaste en '+category+'?');
